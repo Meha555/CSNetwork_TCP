@@ -18,7 +18,7 @@
 #include "net-types.h"
 #include "utils.h"
 
-//void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pcap_data);
+void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pcap_data);
 void ifprint(pcap_if_t* dev, int& i);
 char* iptos(u_long in);
 
@@ -45,7 +45,7 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
     tos = ip_protocol->ip_tos;
     offset = ntohs(ip_protocol->ip_flag_off);
     /*将if判断去掉，即可接受所有TCP数据包 */
-    if (*(u_long*)(packet_content + 30) == inet_addr("192.168.43.40")) {  // 如果接收端ip地址为192.168.3.4
+    if (*(u_long*)(packet_content + 30) == inet_addr("10.51.123.13")) {  // 如果接收端ip地址为192.168.3.4
         FILE* file_text_write = fopen("getLog.txt", "a");
         fprintf(file_text_write, "---------IP协议---------\n");
         fprintf(file_text_write, "版本号:%d\n", ip_version);
@@ -142,6 +142,7 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
     }
 }
 
+//handler for enthernet unpacketing
 void ethernet_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content) {
     u_short ethernet_type;
     EthernetHeader* ethernet_protocol;

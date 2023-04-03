@@ -26,16 +26,12 @@ struct ArpFrame {
     u_long dest_ip_addr;          // 目的ip地址
 };
 
-
-
 // arp包结构
 struct ArpPacket {
 #define ARP_PKT_LEN 42
     EthernetHeader ed;  // 以太网首部
     ArpFrame ah;        // ARP帧
 };
-
-
 
 // 发送的参数结构
 struct SendParam {
@@ -44,7 +40,6 @@ struct SendParam {
     u_char* mac;
     char* netmask;
 };
-
 
 // 接收的参数结构
 struct GetParam {

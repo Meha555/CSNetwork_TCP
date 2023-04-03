@@ -12,14 +12,15 @@
 #define ARP_REPLY 2                                                            // ARP应答
 #define IPTOSBUFFERS 12
 
-//void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pcap_data) {
-//	struct tm* ltime;
-//	char timestr[16];
-//	time_t temp = header->ts.tv_sec;
-//	ltime = localtime(&temp);
-//	strftime(timestr, sizeof(timestr), "%H:%M:%S", ltime);
-//	printf("%s, %.6d len:%d\n", timestr, header->ts.tv_usec, header->len);
-//}
+/* Callback function invoked by npcap for every incoming packet */
+void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pcap_data) {
+	struct tm* ltime;
+	char timestr[16];
+	time_t temp = header->ts.tv_sec;
+	ltime = localtime(&temp);
+	strftime(timestr, sizeof(timestr), "%H:%M:%S", ltime);
+	printf("%s, %.6d len:%d\n", timestr, header->ts.tv_usec, header->len);
+}
 
 /* 将数字类型的IPv4地址转换成字符串类型的 */
 char* iptos(u_long in) {

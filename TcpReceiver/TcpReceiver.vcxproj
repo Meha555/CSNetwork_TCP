@@ -21,8 +21,10 @@
   <ItemGroup>
     <ClInclude Include="..\com-headers\net-types.h" />
     <ClInclude Include="..\com-headers\utils.h" />
+    <ClInclude Include="flow_dump.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="flowDump.cpp" />
     <ClCompile Include="tcp_get.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -30,7 +32,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="tcp_receiver.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
