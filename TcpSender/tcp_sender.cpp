@@ -3,13 +3,19 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1
 #endif
 
+#define WIN32
+#define WPCAP
+#define HAVE_REMOTE
+#pragma comment(lib,"wpcap.lib")
+#pragma comment(lib,"packet.lib")
+#pragma comment(lib,"ws2_32.lib")
+
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include "net-types.h"
 #include "utils.h"
-
 
 #define MAX_STR_SIZE 500    // 从控制台允许的最大输入长度
 #define MTU_SIZE 65535      // 最大传输单元长度

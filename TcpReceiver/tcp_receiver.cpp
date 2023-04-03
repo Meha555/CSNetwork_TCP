@@ -5,6 +5,13 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1
 #endif
 
+#define WIN32
+#define WPCAP
+#define HAVE_REMOTE
+#pragma comment(lib,"wpcap.lib")
+#pragma comment(lib,"packet.lib")
+#pragma comment(lib,"ws2_32.lib")
+
 #include <pcap.h>
 #include <winsock2.h>
 #include <stdio.h>
