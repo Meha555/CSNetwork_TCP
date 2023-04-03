@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <time.h>
 
-#define MEMCPY(dest,src,type) memcpy(dest,&src,sizeof(type));
+#define MEMCPY(dest,src,type) memcpy(dest,src,sizeof(type));
 #define MEMSET(dest,data,type) memset(dest,data,sizeof(type));
 #define ALLOCATE(type,num) (type*)malloc(sizeof(type)*num);
 

@@ -37,15 +37,15 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
     // MAC首部是14位的，加上14位得到IP协议首部
     ip_protocol = (struct IpHeader*)(packet_content + 14);
 
-    ip_len = (ip_protocol->Version_HLen & 0xf) * 4;
-    ip_version = ip_protocol->Version_HLen >> 4;
+    ip_len = (ip_protocol->version_hlen & 0xf) * 4;
+    ip_version = ip_protocol->version_hlen >> 4;
     tcp = (TcpHeader*)((u_char*)ip_protocol + ip_len);
 
     checksum = ntohs(ip_protocol->ip_checksum);
     tos = ip_protocol->ip_tos;
     offset = ntohs(ip_protocol->ip_flag_off);
     /*将if判断去掉，即可接受所有TCP数据包 */
-    if (*(u_long*)(packet_content + 30) == inet_addr("192.168.43.208")) {  // 如果接收端ip地址为192.168.3.4
+    if (*(u_long*)(packet_content + 30) == inet_addr("192.168.43.40")) {  // 如果接收端ip地址为192.168.3.4
         FILE* file_text_write = fopen("getLog.txt", "a");
         fprintf(file_text_write, "---------IP协议---------\n");
         fprintf(file_text_write, "版本号:%d\n", ip_version);
@@ -100,22 +100,22 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
 
         // 将网络字节序列转换成主机字节序列
         printf("---------TCP协议---------\n");
-        sport = ntohs(tcp->SrcPort);
-        dport = ntohs(tcp->DstPort);
+        sport = ntohs(tcp->src_port);
+        dport = ntohs(tcp->dest_port);
         printf("源端口:%d 目的端口:%d\n", sport, dport);
-        printf("序号:%d\n", ntohl(tcp->SequenceNum));
-        printf("确认号:%d\n", ntohl(tcp->Acknowledgment));
-        printf("偏移地址（首部长度）:%d\n", (tcp->HdrLen >> 4) * 4);
-        printf("标志位:%d\n", ntohs(tcp->Flags));
-        printf("紧急UGR:%d\n", (ntohs(tcp->Flags) & 0x20) / 32);
-        printf("确认ACK:%d\n", (ntohs(tcp->Flags) & 0x10) / 16);
-        printf("推送PSH:%d\n", (ntohs(tcp->Flags) & 0x08) / 8);
-        printf("复位RST:%d\n", (ntohs(tcp->Flags) & 0x04) / 4);
-        printf("同步SYN:%d\n", (ntohs(tcp->Flags) & 0x02) / 2);
-        printf("终止FIN:%d\n", ntohs(tcp->Flags) & 0x01);
-        printf("窗口大小:%d\n", ntohs(tcp->AdvertisedWindow));
-        printf("校验和:%d\n", ntohs(tcp->Checksum));
-        printf("紧急指针:%d\n", ntohs(tcp->UrgPtr));
+        printf("序号:%d\n", ntohl(tcp->sequence_num));
+        printf("确认号:%d\n", ntohl(tcp->acknowledgment));
+        printf("偏移地址（首部长度）:%d\n", (tcp->hdr_len >> 4) * 4);
+        printf("标志位:%d\n", ntohs(tcp->flags));
+        printf("紧急UGR:%d\n", (ntohs(tcp->flags) & 0x20) / 32);
+        printf("确认ACK:%d\n", (ntohs(tcp->flags) & 0x10) / 16);
+        printf("推送PSH:%d\n", (ntohs(tcp->flags) & 0x08) / 8);
+        printf("复位RST:%d\n", (ntohs(tcp->flags) & 0x04) / 4);
+        printf("同步SYN:%d\n", (ntohs(tcp->flags) & 0x02) / 2);
+        printf("终止FIN:%d\n", ntohs(tcp->flags) & 0x01);
+        printf("窗口大小:%d\n", ntohs(tcp->advertised_window));
+        printf("校验和:%d\n", ntohs(tcp->check_sum));
+        printf("紧急指针:%d\n", ntohs(tcp->urg_ptr));
         char* data;
         data = (char*)((u_char*)tcp + 20);//data是否存在网络字节序的问题？
         printf("---------数据部分---------\n");
@@ -123,19 +123,19 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
 
         fprintf(file_text_write, "---------TCP协议---------\n");
         fprintf(file_text_write, "源端口:%d 目的端口:%d\n", sport, dport);
-        fprintf(file_text_write, "序号:%d\n", ntohl(tcp->SequenceNum));
-        fprintf(file_text_write, "确认号:%d\n", ntohl(tcp->Acknowledgment));
-        fprintf(file_text_write, "偏移地址（首部长度）:%d\n", (tcp->HdrLen >> 4) * 4);
-        fprintf(file_text_write, "标志位:%d\n", ntohs(tcp->Flags));
-        fprintf(file_text_write, "紧急UGR:%d\n", (ntohs(tcp->Flags) & 0x20) / 32);
-        fprintf(file_text_write, "确认ACK:%d\n", (ntohs(tcp->Flags) & 0x10) / 16);
-        fprintf(file_text_write, "推送PSH:%d\n", (ntohs(tcp->Flags) & 0x08) / 8);
-        fprintf(file_text_write, "复位RST:%d\n", (ntohs(tcp->Flags) & 0x04) / 4);
-        fprintf(file_text_write, "同步SYN:%d\n", (ntohs(tcp->Flags) & 0x02) / 2);
-        fprintf(file_text_write, "终止FIN:%d\n", ntohs(tcp->Flags) & 0x01);
-        fprintf(file_text_write, "窗口大小:%d\n", ntohs(tcp->AdvertisedWindow));
-        fprintf(file_text_write, "校验和:%d\n", ntohs(tcp->Checksum));
-        fprintf(file_text_write, "紧急指针:%d\n", ntohs(tcp->UrgPtr));
+        fprintf(file_text_write, "序号:%d\n", ntohl(tcp->sequence_num));
+        fprintf(file_text_write, "确认号:%d\n", ntohl(tcp->acknowledgment));
+        fprintf(file_text_write, "偏移地址（首部长度）:%d\n", (tcp->hdr_len >> 4) * 4);
+        fprintf(file_text_write, "标志位:%d\n", ntohs(tcp->flags));
+        fprintf(file_text_write, "紧急UGR:%d\n", (ntohs(tcp->flags) & 0x20) / 32);
+        fprintf(file_text_write, "确认ACK:%d\n", (ntohs(tcp->flags) & 0x10) / 16);
+        fprintf(file_text_write, "推送PSH:%d\n", (ntohs(tcp->flags) & 0x08) / 8);
+        fprintf(file_text_write, "复位RST:%d\n", (ntohs(tcp->flags) & 0x04) / 4);
+        fprintf(file_text_write, "同步SYN:%d\n", (ntohs(tcp->flags) & 0x02) / 2);
+        fprintf(file_text_write, "终止FIN:%d\n", ntohs(tcp->flags) & 0x01);
+        fprintf(file_text_write, "窗口大小:%d\n", ntohs(tcp->advertised_window));
+        fprintf(file_text_write, "校验和:%d\n", ntohs(tcp->check_sum));
+        fprintf(file_text_write, "紧急指针:%d\n", ntohs(tcp->urg_ptr));
         fprintf(file_text_write, "---------数据部分---------\n");
         fprintf(file_text_write, "数据部分:%s\n", data);
         fclose(file_text_write);
@@ -144,12 +144,12 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
 
 void ethernet_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content) {
     u_short ethernet_type;
-    struct EthernetHeader* ethernet_protocol;
+    EthernetHeader* ethernet_protocol;
     u_char* mac_string;
     static int packet_number = 1;
 
-    ethernet_protocol = (struct EthernetHeader*)packet_content;  // 获得数据包内容
-    ethernet_type = ntohs(ethernet_protocol->EthType);      // 获得以太网类型
+    ethernet_protocol = (EthernetHeader*)packet_content;  // 获得数据包内容
+    ethernet_type = ntohs(ethernet_protocol->ether_type);      // 获得以太网类型
     if (ethernet_type == 0x0800)                               // 继续分析IP协议
     {
         ip_protool_packet_callback(argument, packet_header, packet_content);
@@ -195,7 +195,7 @@ int main()
     }
     if (i == 0) {
         printf("\n没有找到接口!确保安装了WinPcap.\n");
-        char c = getchar();
+        //getchar();
         return -1;
     }
     printf("选择一个适配器(1~%d):", i);
@@ -203,7 +203,7 @@ int main()
     if (inum < 1 || inum > i) {
         printf("输入的序号超出范围！\n");
         pcap_freealldevs(alldevs);
-        char c = getchar();
+        //getchar();
         return -1;
     }
 
@@ -214,7 +214,7 @@ int main()
     if ((adhandle = pcap_open_live(dev->name, 65536, 1, 1000, errbuf)) == NULL) {
         fprintf(stderr, "\n无法打开适配器，Winpcap不支持 %s\n", dev->name);
         pcap_freealldevs(alldevs);
-        char c = getchar();
+        getchar();
         return -1;
     }
     printf("\n监听网卡: %s ...\n", dev->description);
@@ -223,6 +223,6 @@ int main()
     // 开始捕捉
     // pcap_loop(adhandle,0,ip_protool_packet_callback,NULL);
     pcap_loop(adhandle, 0, ethernet_protocol_packet_callback, NULL);
-    char c = getchar();
+    getchar();
     return 0;
 }
