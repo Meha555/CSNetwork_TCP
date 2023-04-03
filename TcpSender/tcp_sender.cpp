@@ -22,6 +22,7 @@
 #define TIME_OUT 1000       // 超时时间
 #define HOST_NUM 255        // 主机数量
 #define IP_PROTOCOL 0x0800  // IP协议的协议类型号
+#define TCP_PROTOCOL 6      //TCP的协议号
 #define DEST_PORT 102       // 目的端口号
 #define SRC_PORT 1000       // 源端口号
 #define SEQ_NUM 11
@@ -240,7 +241,7 @@ int main() {
         ptcp.SourceAddr = ip.ip_souce_address;
         ptcp.DestinationAddr = ip.ip_destination_address;
         ptcp.Zero = 0;
-        ptcp.Protcol = 6;
+        ptcp.Protcol = TCP_PROTOCOL;
         ptcp.TcpLen = htons(sizeof(struct TcpHeader) + strlen(TcpData));
         // 声明临时存储变量，用来计算校验和
         char TempBuffer[MTU_SIZE];
