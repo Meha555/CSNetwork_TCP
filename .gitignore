@@ -104,6 +104,9 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+TCP_Demo/*.vcxproj*
+TcpSender/*.vcxproj*
+TcpReceiver/*.vcxproj*
 
 # Chutzpah Test files
 _Chutzpah*
