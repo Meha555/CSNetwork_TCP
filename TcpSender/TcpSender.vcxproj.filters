@@ -21,15 +21,15 @@
     <ClInclude Include="..\com-headers\utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\com-headers\flow_dump.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="tcp_put.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="tcp_sender.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="tcp_put_old.cpp">
+    <ClCompile Include="tcp_put.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

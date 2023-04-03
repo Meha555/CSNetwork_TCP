@@ -5,22 +5,25 @@
 #define MEMSET(dest,data,type) memset(dest,data,sizeof(type));
 #define ALLOCATE(type,num) (type*)malloc(sizeof(type)*num);
 
-#define ETH_ARP 0x0806                                                         // 以太网帧类型表示后面数据的类型，对于ARP请求或应答来说，该字段的值为x0806
-#define ARP_HARDWARE 1                                                          // 硬件类型字段值为表示以太网地址
-#define ETH_IP 0x0800                                                          // 协议类型字段表示要映射的协议地址类型值为x0800表示IP地址
-#define ARP_REQUEST 1                                                          // ARP请求
-#define ARP_REPLY 2                                                            // ARP应答
-#define IPTOSBUFFERS 12
+#define MAX_STR_SIZE 500    // 从控制台允许的最大输入长度
+#define MTU_SIZE 65535      // 最大传输单元长度
+#define TIME_OUT 1000       // 超时时间
 
-/* Callback function invoked by npcap for every incoming packet */
-void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pcap_data) {
-	struct tm* ltime;
-	char timestr[16];
-	time_t temp = header->ts.tv_sec;
-	ltime = localtime(&temp);
-	strftime(timestr, sizeof(timestr), "%H:%M:%S", ltime);
-	printf("%s, %.6d len:%d\n", timestr, header->ts.tv_usec, header->len);
-}
+#define ETH_IPV4 0x0800
+#define ETH_IPV6 0x86DD
+#define ETH_ARP 0x0806
+#define ETH_RARP 0x0835
+
+#define ARP_HARDWARE 1
+#define ARP_REQUEST 1                                                         
+#define ARP_REPLY 2 
+
+#define IP_TCP 6
+#define IP_UDP 17
+#define IP_ICMPV4 1
+#define IP_ICMPV6 58
+                                                        // 硬件类型字段值为表示以太网地址                                         // 协议类型字段表示要映射的协议地址类型值为x0800表示IP地址
+#define IPTOSBUFFERS 12
 
 /* 将数字类型的IPv4地址转换成字符串类型的 */
 char* iptos(u_long in) {

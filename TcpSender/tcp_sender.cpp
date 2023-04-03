@@ -17,9 +17,6 @@
 #include "net-types.h"
 #include "utils.h"
 
-#define MAX_STR_SIZE 500    // 从控制台允许的最大输入长度
-#define MTU_SIZE 65535      // 最大传输单元长度
-#define TIME_OUT 1000       // 超时时间
 #define HOST_NUM 255        // 主机数量
 #define IP_PROTOCOL 0x0800  // IP协议的协议类型号
 #define TCP_PROTOCOL 6      //TCP的协议号
@@ -33,11 +30,11 @@
 void ifprint(pcap_if_t* dev, int& i);
 char* iptos(u_long in);
 char* ip6tos(struct sockaddr* sockaddr, char* address, int addrlen);
-void thread_getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask);          // 用ifget方法获取自身的IP和子网掩码
-int thread_getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac);  // 发送一个ARP请求来获取自身的MAC地址
+void getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask);          // 用ifget方法获取自身的IP和子网掩码
+int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac);  // 发送一个ARP请求来获取自身的MAC地址
 u_short checksum(u_short* data, int length);                            // 校验和方法
-DWORD WINAPI SendArpPacket(LPVOID lpParameter);
-DWORD WINAPI GetLivePC(LPVOID lpParameter);
+DWORD WINAPI thread_send_arp(LPVOID lpParameter);
+DWORD WINAPI thread_live_ip(LPVOID lpParameter);
 
 /* ---------------------------------- 全局变量声明 ---------------------------------- */
 
@@ -48,7 +45,7 @@ HANDLE recvthread;  // 接受ARP包线程
 
 // 要发送和接收的ARP分组
 SendParam sp;
-struct GetParam gp;
+GetParam gp;
 
 int main() {
     /* 准备IP地址相关数据的内存，用于之后构造分组 */
@@ -77,10 +74,12 @@ int main() {
 
     /* 获取本机的网络适配器列表，由用户选择一个作为Sender */
     pcap_if_t* alldevs;             // 所有网络适配器
-    pcap_if_t* dev;                 // 选中的网络适配器
+    pcap_if_t* d;                 // 选中的网络适配器
     char errbuf[PCAP_ERRBUF_SIZE];  // 错误缓冲区,长度为256B
     pcap_t* adhandle;               // 捕捉实例,是pcap_open返回的对象
     int i = 0;                      // 适配器计数索引
+    int inum;
+
     // 获取本地适配器列表
     if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &alldevs, errbuf) == -1) {
         // 结果为-1代表出现获取适配器列表失败
@@ -88,33 +87,32 @@ int main() {
         exit(1);
     }
 
-    for (dev = alldevs; dev != NULL; dev = dev->next) {
-        ifprint(dev, i);
+    for (d = alldevs; d != NULL; d = d->next) {
+        ifprint(d, i);
     }
     // i为0即没有找到适配器,可能的原因为Winpcap没有安装导致未扫描到
     if (i == 0) {
         printf("没有找到适配器，请检查Winpcap安装情况");
     }
 
-    int num;
     printf("选择一个适配器(1~%d):", i);
     // 让用户选择选择哪个适配器进行抓包
-    scanf("%d", &num);
+    scanf("%d", &inum);
     printf("\n");
 
     // 用户输入的数字超出合理范围，并释放适配器列表
-    if (num < 1 || num > i) {
+    if (inum < 1 || inum > i) {
         printf("输入的序号超出范围！\n");
         pcap_freealldevs(alldevs);
         return -1;
     }
 
     // 跳转到选中的适配器
-    for (dev = alldevs, i = 0; i < num - 1; dev = dev->next, i++)
+    for (d = alldevs, i = 0; i < inum - 1; d = d->next, i++)
         ;
 
     // 打开选中的适配器
-    adhandle = pcap_open(dev->name,                  // 设备名称
+    adhandle = pcap_open(d->name,                  // 设备名称
                          MTU_SIZE,                   //  65535保证能捕获到数据链路层上的每个数据包的全部内容
                          PCAP_OPENFLAG_PROMISCUOUS,  // 混杂模式
                          TIME_OUT,                   // 超时时间
@@ -124,7 +122,7 @@ int main() {
 
     // 打开适配器失败,打印错误并释放适配器列表
     if (adhandle == NULL) {
-        fprintf(stderr, "\n无法打开适配器，Winpcap不支持 %s\n", dev->name);
+        fprintf(stderr, "\n无法打开适配器，Winpcap不支持 %s\n", d->name);
         // 释放设备列表
         pcap_freealldevs(alldevs);
         return -1;
@@ -132,15 +130,15 @@ int main() {
 
     // 开启2个线程：发送线程和接收线程，用于实现ARP地址解析
     // 对sp和gp两个ARP请求所需要的结构体进行赋值
-    thread_getIP(dev, ip_addr, ip_netmask);    // 获取所选网卡的基本信息：IP和子网掩码
-    thread_getSelfMAC(adhandle, ip_addr, ip_mac);  // 获取当前主机的MAC地址
+    getIP(d, ip_addr, ip_netmask);    // 获取所选网卡的基本信息：IP和子网掩码
+    getSelfMAC(adhandle, ip_addr, ip_mac);  // 获取当前主机的MAC地址
     sp.adhandle = adhandle;
     sp.ip = ip_addr;
     sp.mac = ip_mac;
     sp.netmask = ip_netmask;
     gp.adhandle = adhandle;
-    sendthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SendArpPacket, &sp, 0, NULL);
-    recvthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)GetLivePC, &gp, 0, NULL);
+    sendthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_send_arp, &sp, 0, NULL);
+    recvthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_live_ip, &gp, 0, NULL);
 
     printf("\n监听 %d 号网卡 ...\n", i + 1);
     pcap_freealldevs(alldevs);
@@ -158,6 +156,7 @@ int main() {
         struct PsdTcpHeader ptcp;        // TCP伪首部
         u_char send_buffer[200];          // 发送队列
         IPv4 ipv4;
+        printf("\n请输入你要发送对方的IP地址:\n");
         scanf("%hd.%hd.%hd.%hd", &ipv4.ip1, &ipv4.ip2, &ipv4.ip3, &ipv4.ip4);
         printf("请输入你要发送的内容:\n");
         getchar();//吸收Enter
@@ -238,8 +237,8 @@ int main() {
         // 赋值SendBuffer
         memcpy(&send_buffer[sizeof(struct EthernetHeader) + 20], &tcp, 20);
         // 赋值伪首部
-        ptcp.source_addr = ip.ip_souce_address;
-        ptcp.destination_addr = ip.ip_destination_address;
+        ptcp.src_addr = ip.ip_souce_address;
+        ptcp.des_addr = ip.ip_destination_address;
         ptcp.zero = 0;
         ptcp.protcol = TCP_PROTOCOL;
         ptcp.tcp_len = htons(sizeof(struct TcpHeader) + strlen(tcp_data));
@@ -284,7 +283,7 @@ int main() {
 }
 
 /* 向局域网内所有可能的IP地址发送ARP请求包线程 */
-DWORD WINAPI SendArpPacket(LPVOID lpParameter) {
+DWORD WINAPI thread_send_arp(LPVOID lpParameter) {
     SendParam* spara = (SendParam*)lpParameter;
     pcap_t* adhandle = spara->adhandle;
     char* ip = spara->ip;
@@ -306,7 +305,7 @@ DWORD WINAPI SendArpPacket(LPVOID lpParameter) {
     memcpy(ah.source_mac_addr, mac, 6);
     memset(ah.dest_mac_addr, 0x00, 6);
     ah.hardware_type = htons(ARP_HARDWARE);
-    ah.protocol_type = htons(ETH_IP);
+    ah.protocol_type = htons(ETH_IPV4);
     ah.hardware_addr_len = 6;
     ah.protocol_addr_len = 4;
     ah.source_ip_addr = inet_addr(ip);  // 请求方的IP地址为自身的IP地址
@@ -338,7 +337,7 @@ DWORD WINAPI SendArpPacket(LPVOID lpParameter) {
 }
 
 /* 分析截留的数据包获取活动的主机IP地址 */
-DWORD WINAPI GetLivePC(LPVOID lpParameter) {
+DWORD WINAPI thread_live_ip(LPVOID lpParameter) {
     GetParam* gpara = (GetParam*)lpParameter;
     pcap_t* adhandle = gpara->adhandle;
     int res;
@@ -347,7 +346,7 @@ DWORD WINAPI GetLivePC(LPVOID lpParameter) {
     const u_char* pkt_data;
     while (true) {
         if (flag) {
-            printf("获取MAC地址完毕,请输入你要发送对方的IP地址:\n");
+            printf("获取MAC地址完毕，请输入你要发送对方的IP地址:\n");
             break;
         }
         if ((res = pcap_next_ex(adhandle, &pkt_header, &pkt_data)) >= 0) {
@@ -375,7 +374,7 @@ DWORD WINAPI GetLivePC(LPVOID lpParameter) {
 }
 
 // 获取IP和子网掩码并赋值为ip_addr和ip_netmask
-void thread_getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask) {
+void getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask) {
     pcap_addr_t* a;
     // 遍历所有的地址,a代表一个pcap_addr
     for (a = d->addresses; a; a = a->next) {
@@ -402,7 +401,7 @@ void thread_getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask) {
 }
 
 // 获取本机的MAC地址
-int thread_getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac) {
+int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac) {
     u_char sendbuf[ARP_PKT_LEN];  // arp包结构大小 arp报文总共42 bytes。其中以太网首部14bytes，arp字段28字节
     int i = -1;
     int res;
@@ -417,7 +416,7 @@ int thread_getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac) {
     eh.ether_type = htons(ETH_ARP);
     
     ah.hardware_type = htons(ARP_HARDWARE);
-    ah.protocol_type = htons(ETH_IP);
+    ah.protocol_type = htons(ETH_IPV4);
     ah.hardware_addr_len = 6;
     ah.protocol_addr_len = 4;
     ah.operation_field = htons(ARP_REQUEST);

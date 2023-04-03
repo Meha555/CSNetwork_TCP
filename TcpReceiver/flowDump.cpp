@@ -1,7 +1,7 @@
 #include "flow_dump.h"
 
-/*ip counter*/
-std::map<std::string, int> counter;
+/*ip dumpMsg*/
+std::map<std::string, int> dumpMsg;
 
 int main() {
     pcap_if_t* alldevs;
@@ -173,10 +173,10 @@ void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
         break;
     }
     std::cout << "源IP地址："
-        << int(ah->source_ip_addr.byte1) << "."
-        << int(ah->source_ip_addr.byte2) << "."
-        << int(ah->source_ip_addr.byte3) << "."
-        << int(ah->source_ip_addr.byte4) << std::endl;
+        << int(ah->src_ip_addr.byte1) << "."
+        << int(ah->src_ip_addr.byte2) << "."
+        << int(ah->src_ip_addr.byte3) << "."
+        << int(ah->src_ip_addr.byte4) << std::endl;
 
     std::cout << "目的IP地址："
         << int(ah->des_ip_addr.byte1) << "."
@@ -184,26 +184,26 @@ void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
         << int(ah->des_ip_addr.byte3) << "."
         << int(ah->des_ip_addr.byte4) << std::endl;
 
-    add_to_map(counter, ah->source_ip_addr);
-    print_map(counter);
+    add_to_map(dumpMsg, ah->src_ip_addr);
+    print_map(dumpMsg);
 }
 
 void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
-    ip_v4_header* ih;
-    ih = (ip_v4_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
+    ipv4_header* ih;
+    ih = (ipv4_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
     std::cout << DIVISION << "IPv4协议分析结构" << DIVISION << std::endl;
-    std::cout << "版本号：" << ((ih->ver_ihl & 0xf0) >> 4) << std::endl;
-    std::cout << "首部长度：" << (ih->ver_ihl & 0xf) << "("
-        << ((ih->ver_ihl & 0xf) << 2) << "B)" << std::endl;
+    std::cout << "版本号：" << ((ih->ver_hlen & 0xf0) >> 4) << std::endl;
+    std::cout << "首部长度：" << (ih->ver_hlen & 0xf) << "("
+        << ((ih->ver_hlen & 0xf) << 2) << "B)" << std::endl;
     std::cout << "区别服务：" << int(ih->tos) << std::endl;
     std::cout << "总长度：" << ntohs(ih->tlen) << std::endl;
-    std::cout << "标识：" << ntohs(ih->identification) << std::endl;
-    std::cout << "标志：" << ((ih->flags_fo & 0xE000) >> 12) << std::endl;
-    std::cout << "片偏移：" << (ih->flags_fo & 0x1FFF) << "("
-        << ((ih->flags_fo & 0x1FFF) << 3) << "B)" << std::endl;
+    std::cout << "标识：" << ntohs(ih->id) << std::endl;
+    std::cout << "标志：" << ((ih->flags_offset & 0xE000) >> 12) << std::endl;
+    std::cout << "片偏移：" << (ih->flags_offset & 0x1FFF) << "("
+        << ((ih->flags_offset & 0x1FFF) << 3) << "B)" << std::endl;
     std::cout << "生命周期：" << int(ih->ttl) << std::endl;
     std::cout << "协议：";
-    switch (ih->proto) {
+    switch (ih->protocol) {
     case 6:
         std::cout << "TCP" << std::endl;
         break;
@@ -229,7 +229,7 @@ void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
         << int(ih->des_ip_addr.byte2) << "."
         << int(ih->des_ip_addr.byte3) << "."
         << int(ih->des_ip_addr.byte4) << std::endl;
-    switch (ih->proto) {
+    switch (ih->protocol) {
     case 6:
         tcp_package_handler(param, header, pkt_data);
         break;
@@ -242,13 +242,13 @@ void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
     default:
         break;
     }
-    add_to_map(counter, ih->src_ip_addr);
-    print_map(counter);
+    add_to_map(dumpMsg, ih->src_ip_addr);
+    print_map(dumpMsg);
 }
 
 void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
-    ip_v6_header* ih;
-    ih = (ip_v6_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
+    ipv6_header* ih;
+    ih = (ipv6_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
     int version = (ih->ver_trafficclass_flowlabel & 0xf0000000) >> 28;
     int traffic_class = ntohs((ih->ver_trafficclass_flowlabel & 0x0ff00000) >> 20);
     int flow_label = ih->ver_trafficclass_flowlabel & 0x000fffff;
@@ -289,8 +289,8 @@ void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
     default:
         break;
     }
-    add_to_map(counter, ih->src_ip_addr);
-    print_map(counter);
+    add_to_map(dumpMsg, ih->src_ip_addr);
+    print_map(dumpMsg);
 }
 
 void udp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
@@ -309,8 +309,8 @@ void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
     std::cout << DIVISION << "TCP协议分析结构" << DIVISION << std::endl;
     std::cout << "源端口：" << ntohs(th->sport) << std::endl;
     std::cout << "目的端口：" << ntohs(th->dport) << std::endl;
-    std::cout << "序号：" << ntohl(th->sequence) << std::endl;
-    std::cout << "确认号：" << ntohl(th->acknowledgement) << std::endl;
+    std::cout << "序号：" << ntohl(th->seq) << std::endl;
+    std::cout << "确认号：" << ntohl(th->ack) << std::endl;
     std::cout << "数据偏移：" << ((th->offset & 0xf0) >> 4) << "("
         << ((th->offset & 0xf0) >> 2) << "B)" << std::endl;
     std::cout << "标志：";
@@ -333,9 +333,9 @@ void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
         std::cout << "URG ";
     }
     std::cout << std::endl;
-    std::cout << "窗口：" << ntohs(th->windows) << std::endl;
+    std::cout << "窗口：" << ntohs(th->window) << std::endl;
     std::cout << "检验和：" << ntohs(th->checksum) << std::endl;
-    std::cout << "紧急指针：" << ntohs(th->urgent_pointer) << std::endl;
+    std::cout << "紧急指针：" << ntohs(th->urg) << std::endl;
 }
 
 void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {

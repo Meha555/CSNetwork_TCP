@@ -21,7 +21,7 @@
     <ClInclude Include="..\com-headers\utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="flow_dump.h">
+    <ClInclude Include="..\com-headers\flow_dump.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -30,9 +30,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="tcp_receiver.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="tcp_get_old.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="flowDump.cpp">

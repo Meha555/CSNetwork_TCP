@@ -74,12 +74,12 @@ struct IpHeader {
 #define IP_HDR_LEN 28
     u_char version_hlen;               // 版本信息4位+头长度4位 1字节
     u_char ip_tos;                     // 服务类型    1字节
-    short ip_length;                   // 数据包长度 2字节
-    short ip_id;                       // 数据包标识  2字节
-    short ip_flag_off;                 // 标志3位，片偏移13位  2字节
+    u_short ip_length;                   // 数据包长度 2字节
+    u_short ip_id;                       // 数据包标识  2字节
+    u_short ip_flag_off;                 // 标志3位，片偏移13位  2字节
     u_char ip_ttl;                     // 存活时间  1字节
     u_char ip_protocol;                // 协议类型  1字节
-    short ip_checksum;                 // 首部校验和 2字节
+    u_short ip_checksum;                 // 首部校验和 2字节
     struct IpAddress ip_souce_address;   // 源IP地址   4字节
     struct IpAddress ip_destination_address;  // 目的IP地址  4字节
 };
@@ -101,8 +101,8 @@ struct TcpHeader {
 // TCP伪首部结构体（12B）
 struct PsdTcpHeader {
 #define PSDTCP_HDR_LEN 12
-    struct IpAddress source_addr;       // 源IP地址  4字节
-    struct IpAddress destination_addr;  // 目的IP地址 4字节
+    struct IpAddress src_addr;       // 源IP地址  4字节
+    struct IpAddress des_addr;  // 目的IP地址 4字节
     char zero;                       // 填充位  1字节
     char protcol;                    // 协议号  1字节
     u_short tcp_len;                  // TCP包长度 2字节

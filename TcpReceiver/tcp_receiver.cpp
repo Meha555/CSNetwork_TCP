@@ -212,10 +212,10 @@ int main()
     for (dev = alldevs, i = 0; i < inum - 1; dev = dev->next, i++);
 
     // 打开失败
-    if ((adhandle = pcap_open_live(dev->name, 65536, 1, 1000, errbuf)) == NULL) {
+    if ((adhandle = pcap_open_live(dev->name, MTU_SIZE, 1, TIME_OUT, errbuf)) == NULL) {
         fprintf(stderr, "\n无法打开适配器，Winpcap不支持 %s\n", dev->name);
         pcap_freealldevs(alldevs);
-        getchar();
+        //getchar();
         return -1;
     }
     printf("\n监听网卡: %s ...\n", dev->description);
