@@ -9,16 +9,19 @@
 #include "utils.h"
 
 std::unordered_map<std::string, int> dumpMsg;
+std::ofstream ofs;
 
 int main() {
     pcap_if_t* alldevs;
     pcap_if_t* d;
     int i = 0;
     int inum;
+    int pktnum;
     pcap_t* adhandle;
     char errbuf[PCAP_ERRBUF_SIZE];
     u_int netmask = 0xffffff;
     struct bpf_program fcode;
+    std::string rule = "ip or arp";
 
     /*取得列表*/
     if (pcap_findalldevs(&alldevs, errbuf) == -1) {
@@ -56,12 +59,14 @@ int main() {
     // 释放设备列表
     pcap_freealldevs(alldevs);
 
-    //设置过滤规则引擎 - 只捕获TCP报文
+    //设置过滤规则引擎
     std::string src_ip, dst_port;
+    printf("=====设置过滤规则(d表示默认全部监听)=====\n");
     printf("请输入需要监听的主机的IP地址和该主机上的端口号：\n");
     std::cin >> src_ip >> dst_port;//src host 10.51.123.13 && dst port 102
-    // src host 192.168.1.1 && dst port 80 抓取源地址为192.168.1.1，目的端口为80的流量
-    std::string rule = "src host " + src_ip + " && dst port "+ dst_port;
+    if(src_ip != "d" && dst_port != "d") {
+        rule = "src host " + src_ip + " && dst port " + dst_port;
+    }
     if (pcap_compile(adhandle, &fcode, rule.c_str(), 1, netmask) < 0) {
         fprintf(stderr, "\n无法编译包过滤器。请检查BPF语法。\n");
         pcap_close(adhandle);
@@ -75,11 +80,19 @@ int main() {
         return -1;
     }
 
+    printf("请输入你想要捕获的数据包数量(0表示持续捕获): \n");
+    scanf("%d", &pktnum);
+
     // 开始捕捉
+    std::cout << "当前过滤规则是: " + rule << std::endl;
     printf("\n监听网卡: %s ...\n", d->description);
-    std::cout << "过滤规则是: " + rule << std::endl;
-    pcap_loop(adhandle, 0, packet_handler, NULL);
-    char c = getchar();
+
+    ofs.open("getLog.txt", std::ios::out | std::ios::trunc);
+    pcap_loop(adhandle, pktnum, packet_handler, NULL);
+    
+    pcap_close(adhandle);
+    ofs.close();
+    getchar();
     return 0;
 }
 
@@ -362,35 +375,41 @@ void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const
     std::cout << "ICMP校验和：" << ntohs(ih->checksum) << std::endl;
 }
 
-void add_to_map(std::unordered_map<std::string, int>& counter, ipv4_address ip) {
+void add_to_map(std::unordered_map<std::string, int>& dump, ipv4_address ip) {
     std::string ip_string;
     int amount = 0;
     std::unordered_map<std::string, int>::iterator iter;
     ip_string = std::to_string(ip.dot_fmt.byte1) + "." + std::to_string(ip.dot_fmt.byte2) + "." + std::to_string(ip.dot_fmt.byte3) + "." + std::to_string(ip.dot_fmt.byte4);
-    iter = counter.find(ip_string);
-    if (iter != counter.end()) {
+    iter = dump.find(ip_string);
+    if (iter != dump.end()) {
         amount = iter->second;
     }
-    counter.insert_or_assign(ip_string, ++amount);
+    dump.insert_or_assign(ip_string, ++amount);
 }
 
-void add_to_map(std::unordered_map<std::string, int>& counter, ipv6_address ip) {
+void add_to_map(std::unordered_map<std::string, int>& dump, ipv6_address ip) {
     std::string ip_string;
     int amount = 0;
     std::unordered_map<std::string, int>::iterator iter;
     ip_string = std::to_string(ip.part1) + ":" + std::to_string(ip.part2) + ":" + std::to_string(ip.part3) + ":" + std::to_string(ip.part4) + ":" + std::to_string(ip.part5) + ":" + std::to_string(ip.part6) + ":" + std::to_string(ip.part7) + ":" + std::to_string(ip.part8);
-    iter = counter.find(ip_string);
-    if (iter != counter.end()) {
+    iter = dump.find(ip_string);
+    if (iter != dump.end()) {
         amount = iter->second;
     }
-    counter.insert_or_assign(ip_string, ++amount);
+    dump.insert_or_assign(ip_string, ++amount);
 }
 
-void print_map(std::unordered_map<std::string, int> counter) {
+void print_map(std::unordered_map<std::string, int> dump) {
+    std::ofstream ofs_flow;
+    ofs_flow.open("flowDump.txt", std::ios::out | std::ios::trunc );
     std::unordered_map<std::string, int>::iterator iter;
     std::cout << DIVISION << "流量统计" << DIVISION << std::endl;
+    ofs_flow << DIVISION << "流量统计" << DIVISION << std::endl;
     std::cout << "IP" << std::setfill(' ') << std::setw(45) << "流量" << std::endl;
-    for (iter = counter.begin(); iter != counter.end(); iter++) {
+    ofs_flow << "IP" << std::setfill(' ') << std::setw(45) << "流量" << std::endl;
+    for (iter = dump.begin(); iter != dump.end(); iter++) {
         std::cout << iter->first << std::setfill('.') << std::setw(45 - iter->first.length()) << iter->second << std::endl;
+        ofs_flow << iter->first << std::setfill('.') << std::setw(45 - iter->first.length()) << iter->second << std::endl;
     }
+    ofs_flow.close();
 }
