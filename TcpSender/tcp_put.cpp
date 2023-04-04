@@ -180,8 +180,8 @@ int main() {
         // SECTION - 填充TCP报文
         /* --------------------------------- 填充TCP报文 -------------------------------- */
         // 赋值TCP首部
-        tcp.sport = htons(DEST_PORT);
-        tcp.dport = htons(SRC_PORT);
+        tcp.sport = htons(SRC_PORT);
+        tcp.dport = htons(DEST_PORT);
         tcp.seq = htonl(SEQ_NUM);
         tcp.ack = ACK_NUM;
         tcp.offset = 0x50; //TODO - 这里不需要转化为网络字节序吗
@@ -213,7 +213,7 @@ int main() {
         memcpy(temp_buffer, &ipv4, sizeof(ipv4_header));
         // 计算IP校验和
         ipv4.checksum = checksum((USHORT*)(temp_buffer), sizeof(ipv4_header));
-        // 重新把SendBuffer赋值，IP校验和已经改变
+        // 重新把SendBuffer赋值，IP校验和已经改变------------------------------------------
         memcpy(send_buffer + sizeof(ethernet_header), &ipv4, sizeof(ipv4_header));
         // 发送序列的长度
         int size = sizeof(ethernet_header) + sizeof(ipv4_header) + sizeof(tcp_header) + strlen(tcp_data);

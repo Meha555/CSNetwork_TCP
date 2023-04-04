@@ -62,7 +62,7 @@ int main() {
     std::cin >> src_ip >> dst_port;//src host 10.51.123.13 && dst port 102
     // src host 192.168.1.1 && dst port 80 抓取源地址为192.168.1.1，目的端口为80的流量
     std::string rule = "src host " + src_ip + " && dst port "+ dst_port;
-    if (pcap_compile(adhandle, &fcode, rule.data(), 1, netmask) < 0) { 
+    if (pcap_compile(adhandle, &fcode, rule.c_str(), 1, netmask) < 0) {
         fprintf(stderr, "\n无法编译包过滤器。请检查BPF语法。\n");
         pcap_close(adhandle);
         return -1;
@@ -307,6 +307,7 @@ void udp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
 void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     tcp_header* th;
     th = (tcp_header*)(pkt_data + 14 + 20);
+    char* data = (char*)((u_char*)th + 20);
     std::cout << DIVISION << "TCP协议分析结构" << DIVISION << std::endl;
     std::cout << "源端口：" << ntohs(th->sport) << std::endl;
     std::cout << "目的端口：" << ntohs(th->dport) << std::endl;
@@ -337,6 +338,7 @@ void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
     std::cout << "窗口：" << ntohs(th->window) << std::endl;
     std::cout << "检验和：" << ntohs(th->checksum) << std::endl;
     std::cout << "紧急指针：" << ntohs(th->urg) << std::endl;
+    std::cout << "数据部分：" << data << std::endl;
 }
 
 void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {

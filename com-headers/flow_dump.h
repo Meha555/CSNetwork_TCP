@@ -86,7 +86,7 @@ struct ipv4_header {
     u_short checksum;           // Header checksum
     ipv4_address src_ip_addr;  // Source address
     ipv4_address des_ip_addr;  // Destination address
-    u_int op_pad;               // Option + Padding
+    //u_int op_pad;               // Option + Padding
 };
 
 struct ipv6_header {
