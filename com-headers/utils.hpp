@@ -491,31 +491,32 @@ bool SenderMenu(pcap_if_t* alldevs) {
 }
 
 // 打印适配器信息
-void PrintDevMenu(pcap_if_t* dev, const int& inum) {
-    pcap_if_t* d = dev;
-    int i, index;
+void PrintDevMenu(pcap_if_t* alldevs, const int& inum_all) {
+    pcap_if_t* d;
+    int i, inum;
 
     while (true) {
+        
         printf("---------------打印适配器信息-----------------\n");
-        printf("选择一个适配器(1~%d; 0:退出):", inum);
+        printf("选择一个适配器(1~%d; 0:退出):", inum_all);
         // 让用户选择选择哪个适配器信息打印
-        scanf("%d", &index);
+        scanf("%d", &inum);
         printf("\n");
 
-        if (index == 0) {
+        if (inum == 0) {
             break;
         }
 
         // 用户输入的数字超出合理范围返回
-        if (index < 0 || index > inum) {
+        if (inum < 0 || inum > inum_all) {
             printf("输入的序号超出范围！\n");
             printf("请重新进行选择\n");
             system("pause");
             system("cls");
             continue;
         }
-        //  跳转到选中的适配器
-        for (i = 0; i < index - 1; d = d->next, i++)
+        //  跳转到选中的适配器 
+        for (d = alldevs, i = 0; i < inum - 1; d = d->next, i++)
             ;
         // 打印该适配器信息
         ifprint(d, i);
@@ -524,36 +525,37 @@ void PrintDevMenu(pcap_if_t* dev, const int& inum) {
 }
 
 // 发送报文
-void SendPack(pcap_if_t* alldevs, const int& inum) {
-    int i = 0;
+void SendPack(pcap_if_t* alldevs, const int& inum_all) {
+    int i;
+    int inum;
     pcap_if_t* d;
     pcap_t* adhandle;
     char errbuf[PCAP_ERRBUF_SIZE];
 
     while (true) {
         printf("-------------发送数据包-------------\n");
-        printf("选择一个适配器(1~%d;0:退出):", inum);
+        printf("选择一个适配器(1~%d;0:退出):", inum_all);
         // 让用户选择选择哪个适配器进行抓包
-        scanf("%d", &i);
+        scanf("%d", &inum);
         printf("\n");
 
         // 用户输入的数字超出合理范围，并释放适配器列表
-        if (i < 0 || i > inum) {
+        if (inum < 0 || inum > inum_all) {
             printf("输入的序号超出范围！\n");
             system("pause");
             system("cls");
             continue;
         }
-        if (i == 0) {
+        if (inum == 0) {
             printf("退出回到菜单\n");
             // pcap_freealldevs(alldevs);
             system("pause");
             system("cls");
             return;
         }
-        int index;
+
         // 跳转到选中的适配器
-        for (d = alldevs, index = 0; index < i - 1; d = d->next, index++)
+        for (d = alldevs, i = 0; i < inum - 1; d = d->next, i++)
             ;
 
         // 打开选中的适配器
@@ -574,7 +576,7 @@ void SendPack(pcap_if_t* alldevs, const int& inum) {
             system("cls");
             return;
         }
-        PutGetArp(adhandle, d, i);  // 发送ARP请求，获取当前网卡IP和MAC地址
+        PutGetArp(adhandle, d, inum);  // 发送ARP请求，获取当前网卡IP和MAC地址
     }
 }
 
@@ -1078,31 +1080,32 @@ bool RecieveMenu(pcap_if_t* alldevs) {
 }
 
 // 接收数据
-void RecivePack(pcap_if_t* alldevs, const int& inum, char* errbuf) {
+void RecivePack(pcap_if_t* alldevs, const int& inum_all, char* errbuf) {
     pcap_if_t* d;
     pcap_t* adhandle;
+    int inum;
     int i;
     /*输出列表*/
     /*for (d = alldevs; d != NULL; d = d->next) {
             ifprint(d, inum);
     }*/
-    if (inum == 0) {
+    if (inum_all == 0) {
         printf("\n没有找到接口!确保安装了Npcap.\n");
         // getchar();
         return;
     }
     printf("=====================开始接收数据包================\n");
-    printf("选择一个适配器(1~%d):", inum);
-    scanf("%d", &i);
-    if (i < 1 || i > inum) {
+    printf("选择一个适配器(1~%d):", inum_all);
+    scanf("%d", &inum);
+    if (inum < 1 || inum > inum_all) {
         printf("输入的序号超出范围！\n");
         pcap_freealldevs(alldevs);
         return;
     }
 
-    // 转到选择的设备
-    d = alldevs;
-    for (int j = 0; j < i - 1; d = d->next, j++)
+    // 跳转到选中的适配器
+    
+    for (d = alldevs, i = 0; i < inum - 1; d = d->next, i++)
         ;
     // 打开失败
     if ((adhandle = pcap_open_live(d->name, MTU_SIZE, 1, TIME_OUT, errbuf)) == NULL) {
