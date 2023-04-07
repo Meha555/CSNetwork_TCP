@@ -90,7 +90,8 @@ struct GetParam {
     pcap_t* adhandle;
 };
 
-bool flag;
+static bool flag;
+static std::fstream ofs;
 std::unordered_map<std::string, int> dumpMsg;
 
 /* 将数字类型的IPv4地址转换成字符串 */
@@ -758,6 +759,8 @@ void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_cha
     strftime(timestr, sizeof timestr, "%H:%M:%S", ltime);
     std::cout << B_DIVISION << "时间戳:" << timestr << ","
               << header->ts.tv_usec << "  长度:" << header->len << B_DIVISION << std::endl;
+    ofs << B_DIVISION << "时间戳:" << timestr << ","
+        << header->ts.tv_usec << "  长度:" << header->len << B_DIVISION << std::endl;
     ethernet_package_handler(param, header, pkt_data);  // 从以太网MAC帧开始层层解包
 }
 
@@ -1064,7 +1067,6 @@ bool RecieveMenu(pcap_if_t* alldevs) {
                 RecivePack(alldevs, index, errbuf);
                 break;
             }
-                /*退出*/
             case 3: {
                 pcap_freealldevs(alldevs);
                 return false;
@@ -1158,11 +1160,10 @@ void Monitors(pcap_t* adhandle, pcap_if_t* d) {
     std::cout << "当前过滤规则是: " + rule << std::endl;
     printf("\n监听网卡: %s ...\n", d->description);
 
-    // ofs.open("getLog.txt", std::ios::out | std::ios::trunc);
+    ofs.open("getLog.txt", std::ios::out | std::ios::trunc);
     pcap_loop(adhandle, pktnum, packet_handler, NULL);
-
     pcap_close(adhandle);
-    // ofs.close();
+    ofs.close();
     getchar();
     printf("监听结束");
     system("pause");
