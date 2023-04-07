@@ -767,21 +767,28 @@ void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_cha
 void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     ethernet_header* eh = (ethernet_header*)pkt_data;
     std::cout << DIVISION << "以太网MAC帧内容" << DIVISION << std::endl;
+    ofs << DIVISION << "以太网MAC帧内容" << DIVISION << std::endl;
     u_short type = ntohs(eh->type);
     std::cout << "类型：0x" << std::hex << type;
+    ofs << "类型：0x" << std::hex << type;
     std::cout << std::setbase(10);
+    ofs << std::setbase(10);
     switch (type) {
         case ETH_IPV4:
             std::cout << " (IPv4)" << std::endl;
+            ofs << " (IPv4)" << std::endl;
             break;
         case ETH_IPV6:
             std::cout << "(IPv6)" << std::endl;
+            ofs << " (IPv6)" << std::endl;
             break;
         case ETH_ARP:
             std::cout << " (ARP)" << std::endl;
+            ofs << " (ARP)" << std::endl;
             break;
         case ETH_RARP:
             std::cout << " (RARP)" << std::endl;
+            ofs << " (RARP)" << std::endl;
         default:
             break;
     }
@@ -791,12 +798,24 @@ void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, c
               << int(eh->des_mac_addr.byte4) << ":"
               << int(eh->des_mac_addr.byte5) << ":"
               << int(eh->des_mac_addr.byte6) << std::endl;
+    ofs << "目的地址：" << int(eh->des_mac_addr.byte1) << ":"
+        << int(eh->des_mac_addr.byte2) << ":"
+        << int(eh->des_mac_addr.byte3) << ":"
+        << int(eh->des_mac_addr.byte4) << ":"
+        << int(eh->des_mac_addr.byte5) << ":"
+        << int(eh->des_mac_addr.byte6) << std::endl;
     std::cout << "源地址：" << int(eh->src_mac_addr.byte1) << ":"
               << int(eh->src_mac_addr.byte2) << ":"
               << int(eh->src_mac_addr.byte3) << ":"
               << int(eh->src_mac_addr.byte4) << ":"
               << int(eh->src_mac_addr.byte5) << ":"
               << int(eh->src_mac_addr.byte6) << std::endl;
+    ofs << "源地址：" << int(eh->src_mac_addr.byte1) << ":"
+        << int(eh->src_mac_addr.byte2) << ":"
+        << int(eh->src_mac_addr.byte3) << ":"
+        << int(eh->src_mac_addr.byte4) << ":"
+        << int(eh->src_mac_addr.byte5) << ":"
+        << int(eh->src_mac_addr.byte6) << std::endl;
     switch (type) {
         case ETH_IPV4:
             ip_v4_package_handler(param, header, pkt_data);
@@ -812,45 +831,67 @@ void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, c
     }
     std::cout << std::endl
               << std::endl;
+    ofs << std::endl
+        << std::endl;
 }
 
 void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     arp_header* ah;
     ah = (arp_header*)(pkt_data + 14);
     std::cout << DIVISION << "ARP帧内容" << DIVISION << std::endl;
+    ofs << DIVISION << "ARP帧内容" << DIVISION << std::endl;
     u_short operation_code = ntohs(ah->operation_code);
     std::cout << "硬件类型：" << ntohs(ah->hardware_type) << std::endl;
+    ofs << "硬件类型：" << ntohs(ah->hardware_type) << std::endl;
     std::cout << "协议类型：0x" << std::hex << ntohs(ah->protocol_type) << std::endl;
+    ofs << "协议类型：0x" << std::hex << ntohs(ah->protocol_type) << std::endl;
     std::cout << std::setbase(10);
+    ofs << std::setbase(10);
     std::cout << "硬件地址长度：" << int(ah->hardware_length) << std::endl;
+    ofs << "硬件地址长度：" << int(ah->hardware_length) << std::endl;
     std::cout << "协议地址长度：" << int(ah->protocol_length) << std::endl;
+    ofs << "协议地址长度：" << int(ah->protocol_length) << std::endl;
     switch (operation_code) {
         case 1:
             std::cout << "ARP请求协议" << std::endl;
+            ofs << "ARP请求协议" << std::endl;
             break;
         case 2:
             std::cout << "ARP应答协议" << std::endl;
+            ofs << "ARP应答协议" << std::endl;
             break;
         case 3:
             std::cout << "ARP请求协议" << std::endl;
+            ofs << "ARP请求协议" << std::endl;
             break;
         case 4:
             std::cout << "RARP应答协议" << std::endl;
+            ofs << "RARP应答协议" << std::endl;
             break;
         default:
             break;
     }
     std::cout << "源IP地址："
-              << int(ah->src_ip_addr.dot_fmt.byte1) << "."
-              << int(ah->src_ip_addr.dot_fmt.byte2) << "."
-              << int(ah->src_ip_addr.dot_fmt.byte3) << "."
-              << int(ah->src_ip_addr.dot_fmt.byte4) << std::endl;
+        << int(ah->src_ip_addr.dot_fmt.byte1) << "."
+        << int(ah->src_ip_addr.dot_fmt.byte2) << "."
+        << int(ah->src_ip_addr.dot_fmt.byte3) << "."
+        << int(ah->src_ip_addr.dot_fmt.byte4) << std::endl;
+    ofs << "源IP地址："
+        << int(ah->src_ip_addr.dot_fmt.byte1) << "."
+        << int(ah->src_ip_addr.dot_fmt.byte2) << "."
+        << int(ah->src_ip_addr.dot_fmt.byte3) << "."
+        << int(ah->src_ip_addr.dot_fmt.byte4) << std::endl;
 
     std::cout << "目的IP地址："
               << int(ah->des_ip_addr.dot_fmt.byte1) << "."
               << int(ah->des_ip_addr.dot_fmt.byte2) << "."
               << int(ah->des_ip_addr.dot_fmt.byte3) << "."
               << int(ah->des_ip_addr.dot_fmt.byte4) << std::endl;
+    ofs << "目的IP地址："
+        << int(ah->des_ip_addr.dot_fmt.byte1) << "."
+        << int(ah->des_ip_addr.dot_fmt.byte2) << "."
+        << int(ah->des_ip_addr.dot_fmt.byte3) << "."
+        << int(ah->des_ip_addr.dot_fmt.byte4) << std::endl;
 
     add_to_map(dumpMsg, ah->src_ip_addr);
     print_map(dumpMsg);
@@ -860,43 +901,70 @@ void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
     ipv4_header* ih;
     ih = (ipv4_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
     std::cout << DIVISION << "IPv4数据报内容" << DIVISION << std::endl;
+    ofs << DIVISION << "IPv4数据报内容" << DIVISION << std::endl;
     std::cout << "版本号：" << ((ih->ver_hlen & 0xf0) >> 4) << std::endl;
+    ofs << "版本号：" << ((ih->ver_hlen & 0xf0) >> 4) << std::endl;
     std::cout << "首部长度：" << (ih->ver_hlen & 0xf) << "("
               << ((ih->ver_hlen & 0xf) << 2) << "B)" << std::endl;
+    ofs << "首部长度：" << (ih->ver_hlen & 0xf) << "("
+        << ((ih->ver_hlen & 0xf) << 2) << "B)" << std::endl;
     std::cout << "区别服务：" << int(ih->tos) << std::endl;
+    ofs << "区别服务：" << int(ih->tos) << std::endl;
     std::cout << "总长度：" << ntohs(ih->tlen) << std::endl;
+    ofs << "总长度：" << ntohs(ih->tlen) << std::endl;
     std::cout << "标识：" << ntohs(ih->id) << std::endl;
+    ofs << "标识：" << ntohs(ih->id) << std::endl;
     std::cout << "标志：" << ((ih->flags_offset & 0xE000) >> 12) << std::endl;
+    ofs << "标志：" << ((ih->flags_offset & 0xE000) >> 12) << std::endl;
     std::cout << "片偏移：" << (ih->flags_offset & 0x1FFF) << "("
               << ((ih->flags_offset & 0x1FFF) << 3) << "B)" << std::endl;
+    ofs << "片偏移：" << (ih->flags_offset & 0x1FFF) << "("
+        << ((ih->flags_offset & 0x1FFF) << 3) << "B)" << std::endl;
     std::cout << "生命周期：" << int(ih->ttl) << std::endl;
+    ofs << "生命周期：" << int(ih->ttl) << std::endl;
     std::cout << "协议：";
+    ofs << "协议：";
     switch (ih->protocol) {
         case 6:
             std::cout << "TCP" << std::endl;
+            ofs << "TCP" << std::endl;
             break;
         case 17:
             std::cout << "UDP" << std::endl;
+            ofs << "UDP" << std::endl;
             break;
         case 1:
             std::cout << "ICMP" << std::endl;
+            ofs << "ICMP" << std::endl;
             break;
         default:
             std::cout << std::endl;
+            ofs << std::endl;
             break;
     }
     std::cout << "校验和：" << ntohs(ih->checksum) << std::endl;
+    ofs << "校验和：" << ntohs(ih->checksum) << std::endl;
     std::cout << "源IP地址："
               << int(ih->src_ip_addr.dot_fmt.byte1) << "."
               << int(ih->src_ip_addr.dot_fmt.byte2) << "."
               << int(ih->src_ip_addr.dot_fmt.byte3) << "."
               << int(ih->src_ip_addr.dot_fmt.byte4) << std::endl;
+    ofs << "源IP地址："
+        << int(ih->src_ip_addr.dot_fmt.byte1) << "."
+        << int(ih->src_ip_addr.dot_fmt.byte2) << "."
+        << int(ih->src_ip_addr.dot_fmt.byte3) << "."
+        << int(ih->src_ip_addr.dot_fmt.byte4) << std::endl;
 
     std::cout << "目的IP地址："
               << int(ih->des_ip_addr.dot_fmt.byte1) << "."
               << int(ih->des_ip_addr.dot_fmt.byte2) << "."
               << int(ih->des_ip_addr.dot_fmt.byte3) << "."
               << int(ih->des_ip_addr.dot_fmt.byte4) << std::endl;
+    ofs << "目的IP地址："
+        << int(ih->des_ip_addr.dot_fmt.byte1) << "."
+        << int(ih->des_ip_addr.dot_fmt.byte2) << "."
+        << int(ih->des_ip_addr.dot_fmt.byte3) << "."
+        << int(ih->des_ip_addr.dot_fmt.byte4) << std::endl;
     switch (ih->protocol) {
         case IP_TCP:
             tcp_package_handler(param, header, pkt_data);
@@ -921,11 +989,17 @@ void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
     int traffic_class = ntohs((ih->ver_trafficclass_flowlabel & 0x0ff00000) >> 20);
     int flow_label = ih->ver_trafficclass_flowlabel & 0x000fffff;
     std::cout << "版本号：" << version << std::endl;
+    ofs << "版本号：" << version << std::endl;
     std::cout << "通信量类：" << traffic_class << std::endl;
+    ofs << "通信量类：" << traffic_class << std::endl;
     std::cout << "流标号：" << flow_label << std::endl;
+    ofs << "流标号：" << flow_label << std::endl;
     std::cout << "有效载荷：" << ntohs(ih->payload_len) << std::endl;
+    ofs << "有效载荷：" << ntohs(ih->payload_len) << std::endl;
     std::cout << "下一个首部：" << int(ih->next_head) << std::endl;
+    ofs << "下一个首部：" << int(ih->next_head) << std::endl;
     std::cout << "跳数限制：" << int(ih->ttl) << std::endl;
+    ofs << "跳数限制：" << int(ih->ttl) << std::endl;
     std::cout << "源IP地址："
               << int(ih->src_ip_addr.part1) << ":"
               << int(ih->src_ip_addr.part2) << ":"
@@ -935,6 +1009,15 @@ void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
               << int(ih->src_ip_addr.part6) << ":"
               << int(ih->src_ip_addr.part7) << ":"
               << int(ih->src_ip_addr.part8) << std::endl;
+    ofs << "源IP地址："
+        << int(ih->src_ip_addr.part1) << ":"
+        << int(ih->src_ip_addr.part2) << ":"
+        << int(ih->src_ip_addr.part3) << ":"
+        << int(ih->src_ip_addr.part4) << ":"
+        << int(ih->src_ip_addr.part5) << ":"
+        << int(ih->src_ip_addr.part6) << ":"
+        << int(ih->src_ip_addr.part7) << ":"
+        << int(ih->src_ip_addr.part8) << std::endl;
     std::cout << "目的IP地址："
               << int(ih->dst_ip_addr.part1) << ":"
               << int(ih->dst_ip_addr.part2) << ":"
@@ -944,6 +1027,15 @@ void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
               << int(ih->dst_ip_addr.part6) << ":"
               << int(ih->dst_ip_addr.part7) << ":"
               << int(ih->dst_ip_addr.part8) << std::endl;
+    ofs << "目的IP地址："
+        << int(ih->dst_ip_addr.part1) << ":"
+        << int(ih->dst_ip_addr.part2) << ":"
+        << int(ih->dst_ip_addr.part3) << ":"
+        << int(ih->dst_ip_addr.part4) << ":"
+        << int(ih->dst_ip_addr.part5) << ":"
+        << int(ih->dst_ip_addr.part6) << ":"
+        << int(ih->dst_ip_addr.part7) << ":"
+        << int(ih->dst_ip_addr.part8) << std::endl;
     switch (ih->next_head) {
         case IP_TCP:
             tcp_package_handler(param, header, pkt_data);
@@ -965,10 +1057,15 @@ void udp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
     udp_header* uh;
     uh = (udp_header*)(pkt_data + 20 + 14);
     std::cout << DIVISION << "UDP报文内容" << DIVISION << std::endl;
+    ofs << DIVISION << "UDP报文内容" << DIVISION << std::endl;
     std::cout << "源端口：" << ntohs(uh->sport) << std::endl;
+    ofs << "源端口：" << ntohs(uh->sport) << std::endl;
     std::cout << "目的端口：" << ntohs(uh->dport) << std::endl;
+    ofs << "目的端口：" << ntohs(uh->dport) << std::endl;
     std::cout << "长度：" << ntohs(uh->len) << std::endl;
+    ofs << "长度：" << ntohs(uh->len) << std::endl;
     std::cout << "检验和：" << ntohs(uh->checksum) << std::endl;
+    ofs << "检验和：" << ntohs(uh->checksum) << std::endl;
 }
 
 void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
@@ -976,57 +1073,84 @@ void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
     th = (tcp_header*)(pkt_data + 14 + 20);
     char* data = (char*)((u_char*)th + 20);
     std::cout << DIVISION << "TCP报文内容" << DIVISION << std::endl;
+    ofs << DIVISION << "TCP报文内容" << DIVISION << std::endl;
     std::cout << "源端口：" << ntohs(th->sport) << std::endl;
+    ofs << "源端口：" << ntohs(th->sport) << std::endl;
     std::cout << "目的端口：" << ntohs(th->dport) << std::endl;
+    ofs << "目的端口：" << ntohs(th->dport) << std::endl;
     std::cout << "序号：" << ntohl(th->seq) << std::endl;
+    ofs << "序号：" << ntohl(th->seq) << std::endl;
     std::cout << "确认号：" << ntohl(th->ack) << std::endl;
+    ofs << "确认号：" << ntohl(th->ack) << std::endl;
     std::cout << "数据偏移：" << ((th->offset & 0xf0) >> 4) << "("
               << ((th->offset & 0xf0) >> 2) << "B)" << std::endl;
+    ofs << "数据偏移：" << ((th->offset & 0xf0) >> 4) << "("
+        << ((th->offset & 0xf0) >> 2) << "B)" << std::endl;
     std::cout << "标志：";
+    ofs << "标志：";
     if (th->flags & 0x01) {
         std::cout << "FIN ";
+        ofs << "FIN ";
     }
     if (th->flags & 0x02) {
         std::cout << "SYN ";
+        ofs << "SYN ";
     }
     if (th->flags & 0x04) {
         std::cout << "RST ";
+        ofs << "RST ";
     }
     if (th->flags & 0x08) {
         std::cout << "PSH ";
+        ofs << "PSH ";
     }
     if (th->flags & 0x10) {
         std::cout << "ACK ";
+        ofs << "ACK ";
     }
     if (th->flags & 0x20) {
         std::cout << "URG ";
+        ofs << "URG ";
     }
     std::cout << std::endl;
+    ofs << std::endl;
     std::cout << "窗口：" << ntohs(th->window) << std::endl;
+    ofs << "窗口：" << ntohs(th->window) << std::endl;
     std::cout << "检验和：" << ntohs(th->checksum) << std::endl;
+    ofs << "检验和：" << ntohs(th->checksum) << std::endl;
     std::cout << "紧急指针：" << ntohs(th->urg) << std::endl;
+    ofs << "紧急指针：" << ntohs(th->urg) << std::endl;
     std::cout << "数据部分：" << data << std::endl;
+    ofs << "数据部分：" << data << std::endl;
 }
 
 void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     icmp_header* ih;
     ih = (icmp_header*)(pkt_data + 14 + 20);
     std::cout << DIVISION << "ICMP报文内容" << DIVISION << std::endl;
+    ofs << DIVISION << "ICMP报文内容" << DIVISION << std::endl;
     std::cout << "ICMP类型：" << ih->type;
+    ofs << "ICMP类型：" << ih->type;
     switch (ih->type) {
         case 8:
             std::cout << "ICMP回显请求协议" << std::endl;
+            ofs << "ICMP回显请求协议" << std::endl;
             break;
         case 0:
             std::cout << "ICMP回显应答协议" << std::endl;
+            ofs << "ICMP回显应答协议" << std::endl;
             break;
         default:
             break;
     }
     std::cout << "ICMP代码：" << ih->code << std::endl;
+    ofs << "ICMP代码：" << ih->code << std::endl;
     std::cout << "标识符：" << ih->id << std::endl;
+    ofs << "标识符：" << ih->id << std::endl;
     std::cout << "序列码：" << ih->sequence << std::endl;
+    ofs << "序列码：" << ih->sequence << std::endl;
     std::cout << "ICMP校验和：" << ntohs(ih->checksum) << std::endl;
+    ofs << "ICMP校验和：" << ntohs(ih->checksum) << std::endl;
 }
 
 // 打印接收端菜单
