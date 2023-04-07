@@ -18,10 +18,7 @@
     <ClInclude Include="..\com-headers\net-types.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\com-headers\utils.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\com-headers\flow_dump.h">
+    <ClInclude Include="..\com-headers\utils.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -26,6 +26,73 @@
 // 硬件类型字段值为表示以太网地址                                         // 协议类型字段表示要映射的协议地址类型值为x0800表示IP地址
 #define IPTOSBUFFERS 12
 
+/* Npcap库中规定的回调函数，每当有到达的分组就会调用这个函数 */
+void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析以太网MAC帧*/
+void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析IPv4数据报*/
+void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析IPv6数据报*/
+void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析ARP帧*/
+void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析UDP报文*/
+void udp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析TCP报文*/
+void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*分析ICMP报文*/
+void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+
+/*记录IP数据报中的信息*/
+void add_to_map(std::unordered_map<std::string, int>& counter, ipv4_address& ip);
+void add_to_map(std::unordered_map<std::string, int>& counter, ipv6_address& ip);
+
+/*打印流量统计信息*/
+void print_map(std::unordered_map<std::string, int> counter);
+
+
+char* iptos(u_long in);
+char* ip6tos(struct sockaddr* sockaddr, char* address, int addrlen);
+u_short checksum(u_short* data, int length);
+void ifprint(pcap_if_t* dev, int& inum);
+DWORD WINAPI thread_send_arp(LPVOID lpParameter);
+DWORD WINAPI thread_live_ip(LPVOID lpParameter);
+void getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask);
+int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac);
+bool SenderMenu(pcap_if_t* alldevs);
+void PrintDevMenu(pcap_if_t* dev, const int& inum);
+void SendPack(pcap_if_t* alldevs, const int& inum);
+void PutGetArp(pcap_t* adhandle, pcap_if_t* d, const int& i);
+void FillEthFrame(const u_char* ip_mac, const char* ip_addr, pcap_t* adhandle);
+void FillIPData(ipv4_num& ipv4_n, u_char* send_buf, char* tcp_data, const char* ip_addr, pcap_t* adhandle);
+void FillTCPData(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* adhandle);
+bool RecieveMenu(pcap_if_t* alldevs);
+void RecivePack(pcap_if_t* alldevs, const int& inum, char* errbuf);
+void Monitors(pcap_t* adhandle, pcap_if_t* d);
+
+// 发送的参数
+struct SendParam {
+    pcap_t* adhandle;
+    char* ip;
+    u_char* mac;
+    char* netmask;
+};
+
+// 接收的参数
+struct GetParam {
+    pcap_t* adhandle;
+};
+
+bool flag;
+std::unordered_map<std::string, int> dumpMsg;
+
 /* 将数字类型的IPv4地址转换成字符串 */
 char* iptos(u_long in) {
     static char output[IPTOSBUFFERS][3 * 4 + 3 + 1];
@@ -72,8 +139,8 @@ u_short checksum(u_short* data, int length) {
 }
 
 // 打印设备信息
-void ifprint(pcap_if_t* dev, int& i) {
-    printf("-----------------------------------------------------------------\n序号: %d\n名称: %s\n", ++i, dev->name);
+void ifprint(pcap_if_t* dev, int& inum) {
+    printf("-----------------------------------------------------------------\n序号: %d\n名称: %s\n", ++inum, dev->name);
     if (dev->description) {
         // 打印适配器的描述信息
         printf("适配器描述:%s\n", dev->description);
@@ -113,6 +180,45 @@ void ifprint(pcap_if_t* dev, int& i) {
                 break;
         }
     }
+}
+
+void add_to_map(std::unordered_map<std::string, int>& dump, ipv4_address& ip) {
+    std::string ip_string;
+    int amount = 0;
+    std::unordered_map<std::string, int>::iterator iter;
+    ip_string = std::to_string(ip.dot_fmt.byte1) + "." + std::to_string(ip.dot_fmt.byte2) + "." + std::to_string(ip.dot_fmt.byte3) + "." + std::to_string(ip.dot_fmt.byte4);
+    iter = dump.find(ip_string);
+    if (iter != dump.end()) {
+        amount = iter->second;
+    }
+    dump.insert_or_assign(ip_string, ++amount);
+}
+
+void add_to_map(std::unordered_map<std::string, int>& dump, ipv6_address& ip) {
+    std::string ip_string;
+    int amount = 0;
+    std::unordered_map<std::string, int>::iterator iter;
+    ip_string = std::to_string(ip.part1) + ":" + std::to_string(ip.part2) + ":" + std::to_string(ip.part3) + ":" + std::to_string(ip.part4) + ":" + std::to_string(ip.part5) + ":" + std::to_string(ip.part6) + ":" + std::to_string(ip.part7) + ":" + std::to_string(ip.part8);
+    iter = dump.find(ip_string);
+    if (iter != dump.end()) {
+        amount = iter->second;
+    }
+    dump.insert_or_assign(ip_string, ++amount);
+}
+
+void print_map(std::unordered_map<std::string, int> dump) {
+    std::ofstream ofs_flow;
+    ofs_flow.open("flowDump.txt", std::ios::out | std::ios::trunc);
+    std::unordered_map<std::string, int>::iterator iter;
+    std::cout << DIVISION << "流量统计" << DIVISION << std::endl;
+    ofs_flow << DIVISION << "流量统计" << DIVISION << std::endl;
+    std::cout << "IP" << std::setfill(' ') << std::setw(45) << "流量" << std::endl;
+    ofs_flow << "IP" << std::setfill(' ') << std::setw(45) << "流量" << std::endl;
+    for (iter = dump.begin(); iter != dump.end(); iter++) {
+        std::cout << iter->first << std::setfill('.') << std::setw(45 - iter->first.length()) << iter->second << std::endl;
+        ofs_flow << iter->first << std::setfill('.') << std::setw(45 - iter->first.length()) << iter->second << std::endl;
+    }
+    ofs_flow.close();
 }
 
 /* 向本网路内所有可能的主机发送ARP帧 */
@@ -173,7 +279,6 @@ DWORD WINAPI thread_send_arp(LPVOID lpParameter) {
     return 0;
 }
 
-extern bool flag;
 /* 获取活动的主机IP地址 */
 DWORD WINAPI thread_live_ip(LPVOID lpParameter) {
     GetParam* gpara = (GetParam*)lpParameter;
@@ -311,19 +416,6 @@ int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac) {
 #define SRC_PORT 1000  // 源端口号
 #define SEQ_NUM 11
 #define ACK_NUM 0
-
-// 发送的参数
-struct SendParam {
-    pcap_t* adhandle;
-    char* ip;
-    u_char* mac;
-    char* netmask;
-};
-
-// 接收的参数
-struct GetParam {
-    pcap_t* adhandle;
-};
 
 // 打印发送端菜单
 bool SenderMenu(pcap_if_t* alldevs) {
@@ -653,7 +745,6 @@ void FillTCPData(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* ad
 /* -------------------------------------------------------------------------- */
 /*                                    接收                                    */
 /* -------------------------------------------------------------------------- */
-std::unordered_map<std::string, int> dumpMsg;
 
 void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     struct tm* ltime;
@@ -931,45 +1022,6 @@ void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const
     std::cout << "标识符：" << ih->id << std::endl;
     std::cout << "序列码：" << ih->sequence << std::endl;
     std::cout << "ICMP校验和：" << ntohs(ih->checksum) << std::endl;
-}
-
-void add_to_map(std::unordered_map<std::string, int>& dump, ipv4_address& ip) {
-    std::string ip_string;
-    int amount = 0;
-    std::unordered_map<std::string, int>::iterator iter;
-    ip_string = std::to_string(ip.dot_fmt.byte1) + "." + std::to_string(ip.dot_fmt.byte2) + "." + std::to_string(ip.dot_fmt.byte3) + "." + std::to_string(ip.dot_fmt.byte4);
-    iter = dump.find(ip_string);
-    if (iter != dump.end()) {
-        amount = iter->second;
-    }
-    dump.insert_or_assign(ip_string, ++amount);
-}
-
-void add_to_map(std::unordered_map<std::string, int>& dump, ipv6_address& ip) {
-    std::string ip_string;
-    int amount = 0;
-    std::unordered_map<std::string, int>::iterator iter;
-    ip_string = std::to_string(ip.part1) + ":" + std::to_string(ip.part2) + ":" + std::to_string(ip.part3) + ":" + std::to_string(ip.part4) + ":" + std::to_string(ip.part5) + ":" + std::to_string(ip.part6) + ":" + std::to_string(ip.part7) + ":" + std::to_string(ip.part8);
-    iter = dump.find(ip_string);
-    if (iter != dump.end()) {
-        amount = iter->second;
-    }
-    dump.insert_or_assign(ip_string, ++amount);
-}
-
-void print_map(std::unordered_map<std::string, int> dump) {
-    std::ofstream ofs_flow;
-    ofs_flow.open("flowDump.txt", std::ios::out | std::ios::trunc);
-    std::unordered_map<std::string, int>::iterator iter;
-    std::cout << DIVISION << "流量统计" << DIVISION << std::endl;
-    ofs_flow << DIVISION << "流量统计" << DIVISION << std::endl;
-    std::cout << "IP" << std::setfill(' ') << std::setw(45) << "流量" << std::endl;
-    ofs_flow << "IP" << std::setfill(' ') << std::setw(45) << "流量" << std::endl;
-    for (iter = dump.begin(); iter != dump.end(); iter++) {
-        std::cout << iter->first << std::setfill('.') << std::setw(45 - iter->first.length()) << iter->second << std::endl;
-        ofs_flow << iter->first << std::setfill('.') << std::setw(45 - iter->first.length()) << iter->second << std::endl;
-    }
-    ofs_flow.close();
 }
 
 // 打印接收端菜单

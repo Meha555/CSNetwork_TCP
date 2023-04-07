@@ -157,33 +157,3 @@ struct icmp_header {
 
 #pragma pack()  // 取消按一个字节内存对齐
 
-/* Npcap库中规定的回调函数，每当有到达的分组就会调用这个函数 */
-void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析以太网MAC帧*/
-void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析IPv4数据报*/
-void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析IPv6数据报*/
-void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析ARP帧*/
-void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析UDP报文*/
-void udp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析TCP报文*/
-void tcp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*分析ICMP报文*/
-void icmp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
-
-/*记录IP数据报中的信息*/
-void add_to_map(std::unordered_map<std::string, int>& counter, ipv4_address& ip);
-void add_to_map(std::unordered_map<std::string, int>& counter, ipv6_address& ip);
-
-/*打印流量统计信息*/
-void print_map(std::unordered_map<std::string, int> counter);

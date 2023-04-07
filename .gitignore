@@ -6,6 +6,7 @@
 # dirs no need to submit
 /npcap-sdk-1.13
 /WpdPack
+/.vscode
 
 # User-specific files
 *.rsuser
@@ -107,6 +108,7 @@ StyleCopReport.xml
 TCP_Demo/*.vcxproj*
 TcpSender/*.vcxproj*
 TcpReceiver/*.vcxproj*
+*.json
 
 # Chutzpah Test files
 _Chutzpah*

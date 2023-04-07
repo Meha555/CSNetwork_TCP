@@ -19,9 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\com-headers\flow_dump.h" />
     <ClInclude Include="..\com-headers\net-types.h" />
-    <ClInclude Include="..\com-headers\utils.h" />
+    <ClInclude Include="..\com-headers\utils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="flowDump.cpp">
