@@ -8,15 +8,15 @@
 #define WIN32
 #define WPCAP
 #define HAVE_REMOTE
-#pragma comment(lib,"wpcap.lib")
-#pragma comment(lib,"packet.lib")
-#pragma comment(lib,"ws2_32.lib")
+#pragma comment(lib, "wpcap.lib")
+#pragma comment(lib, "packet.lib")
+#pragma comment(lib, "ws2_32.lib")
 
 #include <pcap.h>
-#include <winsock2.h>
 #include <stdio.h>
+#include <winsock2.h>
 #include "net-types.h"
-#include "utils.h"
+#include "utils.hpp"
 
 void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pcap_data);
 void ifprint(pcap_if_t* dev, int& i);
@@ -45,7 +45,8 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
     tos = ip_protocol->ip_tos;
     offset = ntohs(ip_protocol->ip_flag_off);
     /*将if判断去掉，即可接受所有TCP数据包 */
-    if (*(u_long*)(packet_content + 30) == inet_addr("10.51.123.13")) {  // 如果接收端ip地址为192.168.3.4
+    string receiver_ip = "10.51.123.13";  // 如果接收端IP为xxx.xxx.xxx.xxx
+    if (*(u_long*)(packet_content + 30) == inet_addr(receiver_ip)) {
         FILE* file_text_write = fopen("getLog.txt", "a");
         fprintf(file_text_write, "---------IP协议---------\n");
         fprintf(file_text_write, "版本号:%d\n", ip_version);
@@ -56,13 +57,21 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
         fprintf(file_text_write, "偏移:%d\n", (offset & 0x1fff) * 8);
         fprintf(file_text_write, "生存时间:%d\n", ip_protocol->ip_ttl);
         fprintf(file_text_write, "协议类型:%d\n", ip_protocol->ip_protocol);
-        switch (ip_protocol->ip_protocol)
-        {
-        case 1: fprintf(file_text_write, "上层协议是ICMP协议\n"); break;
-        case 2: fprintf(file_text_write, "上层协议是IGMP协议\n"); break;
-        case 6: fprintf(file_text_write, "上层协议是TCP协议\n"); break;
-        case 17: fprintf(file_text_write, "上层协议是UDP协议\n"); break;
-        default:break;
+        switch (ip_protocol->ip_protocol) {
+            case 1:
+                fprintf(file_text_write, "上层协议是ICMP协议\n");
+                break;
+            case 2:
+                fprintf(file_text_write, "上层协议是IGMP协议\n");
+                break;
+            case 6:
+                fprintf(file_text_write, "上层协议是TCP协议\n");
+                break;
+            case 17:
+                fprintf(file_text_write, "上层协议是UDP协议\n");
+                break;
+            default:
+                break;
         }
         fprintf(file_text_write, "检验和:%d\n", checksum);
         fprintf(file_text_write, "源IP地址:%s\n", inet_ntoa(ip_protocol->ip_souce_address));
@@ -78,20 +87,20 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
         printf("生存时间:%d\n", ip_protocol->ip_ttl);
         printf("协议类型:%d\n", ip_protocol->ip_protocol);
         switch (ip_protocol->ip_protocol) {
-        case 1:
-            printf("上层协议是ICMP协议\n");
-            break;
-        case 2:
-            printf("上层协议是IGMP协议\n");
-            break;
-        case 6:
-            printf("上层协议是TCP协议\n");
-            break;
-        case 17:
-            printf("上层协议是UDP协议\n");
-            break;
-        default:
-            break;
+            case 1:
+                printf("上层协议是ICMP协议\n");
+                break;
+            case 2:
+                printf("上层协议是IGMP协议\n");
+                break;
+            case 6:
+                printf("上层协议是TCP协议\n");
+                break;
+            case 17:
+                printf("上层协议是UDP协议\n");
+                break;
+            default:
+                break;
         }
 
         printf("检验和:%d\n", checksum);
@@ -117,7 +126,7 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
         printf("校验和:%d\n", ntohs(tcp->check_sum));
         printf("紧急指针:%d\n", ntohs(tcp->urg_ptr));
         char* data;
-        data = (char*)((u_char*)tcp + 20);//data是否存在网络字节序的问题？
+        data = (char*)((u_char*)tcp + 20);  // data是否存在网络字节序的问题？
         printf("---------数据部分---------\n");
         printf("数据部分:%s\n", data);
 
@@ -142,43 +151,23 @@ void ip_protool_packet_callback(u_char* argument, const struct pcap_pkthdr* pack
     }
 }
 
-//handler for enthernet unpacketing
+// handler for enthernet unpacketing
 void ethernet_protocol_packet_callback(u_char* argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content) {
     u_short ethernet_type;
     EthernetHeader* ethernet_protocol;
     u_char* mac_string;
     static int packet_number = 1;
 
-    ethernet_protocol = (EthernetHeader*)packet_content;  // 获得数据包内容
-    ethernet_type = ntohs(ethernet_protocol->ether_type);      // 获得以太网类型
-    if (ethernet_type == 0x0800)                               // 继续分析IP协议
+    ethernet_protocol = (EthernetHeader*)packet_content;   // 获得数据包内容
+    ethernet_type = ntohs(ethernet_protocol->ether_type);  // 获得以太网类型
+    if (ethernet_type == 0x0800)                           // 继续分析IP协议
     {
         ip_protool_packet_callback(argument, packet_header, packet_content);
     }
     packet_number++;
 }
 
-int main()
-// {
-//      pcap_t* pcap_handle; //winpcap句柄
-//      char error_content[PCAP_ERRBUF_SIZE]; //存储错误信息
-//      bpf_u_int32 net_mask; //掩码地址
-//      bpf_u_int32 net_ip;  //网络地址
-//      char *net_interface;  //网络接口
-//      struct bpf_program bpf_filter;  //BPF过滤规则
-//      char bpf_filter_string[]="ip"; //过滤规则字符串，只分析IPv4的数据包
-//      net_interface=pcap_lookupdev(error_content); //获得网络接口
-//      pcap_lookupnet(net_interface,&net_ip,&net_mask,error_content); //获得网络地址和掩码地址
-//      pcap_handle=pcap_open_live(net_interface,BUFSIZ,1,0,error_content); //打开网络接口
-//      pcap_compile(pcap_handle,&bpf_filter,bpf_filter_string,0,net_ip); //编译过滤规则
-//      pcap_setfilter(pcap_handle,&bpf_filter);//设置过滤规则
-//      if (pcap_datalink(pcap_handle)!=DLT_EN10MB) //DLT_EN10MB表示以太网
-//          return 0;
-//      pcap_loop(pcap_handle,10,ethernet_protocol_packet_callback,NULL); //捕获10个数据包进行分析
-//      pcap_close(pcap_handle);
-//      return 0;
-// }
-{
+int main() {
     FILE* file_text_write = fopen("getLog.txt", "w");
     fclose(file_text_write);
     pcap_if_t* alldevs;
@@ -196,7 +185,7 @@ int main()
     }
     if (i == 0) {
         printf("\n没有找到接口!确保安装了WinPcap.\n");
-        //getchar();
+        // getchar();
         return -1;
     }
     printf("选择一个适配器(1~%d):", i);
@@ -204,18 +193,19 @@ int main()
     if (inum < 1 || inum > i) {
         printf("输入的序号超出范围！\n");
         pcap_freealldevs(alldevs);
-        //getchar();
+        // getchar();
         return -1;
     }
 
     // 转到选择的设备
-    for (dev = alldevs, i = 0; i < inum - 1; dev = dev->next, i++);
+    for (dev = alldevs, i = 0; i < inum - 1; dev = dev->next, i++)
+        ;
 
     // 打开失败
     if ((adhandle = pcap_open_live(dev->name, MTU_SIZE, 1, TIME_OUT, errbuf)) == NULL) {
         fprintf(stderr, "\n无法打开适配器，Winpcap不支持 %s\n", dev->name);
         pcap_freealldevs(alldevs);
-        //getchar();
+        // getchar();
         return -1;
     }
     printf("\n监听网卡: %s ...\n", dev->description);
