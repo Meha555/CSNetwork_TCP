@@ -23,9 +23,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="tcp_sender.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="tcp_put.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

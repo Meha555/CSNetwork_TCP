@@ -26,11 +26,5 @@
     <ClCompile Include="tcp_get.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="tcp_receiver.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="flowDump.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

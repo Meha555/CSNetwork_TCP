@@ -31,6 +31,7 @@ struct ipv4_num {
     u_short ip1, ip2, ip3, ip4;
 };
 
+// IPv4结构体，适用于输出与存储
 struct ipv4_address {
     union {
         struct {
@@ -43,7 +44,7 @@ struct ipv4_address {
     } ipv4_fmt;
 #define dot_fmt ipv4_fmt.dot_decimal_fmt
 #define bin_fmt ipv4_fmt.binary_fmt
-    void operator=(ipv4_address& t) {
+    void operator=(const ipv4_address& t) {
         this->bin_fmt = t.bin_fmt;
     }
 };
@@ -69,24 +70,24 @@ struct mac_address {
 };
 
 struct ethernet_header {
-    mac_address des_mac_addr;
-    mac_address src_mac_addr;
-    u_short type;
+    mac_address des_mac_addr;  // 目的MAC地址6B
+    mac_address src_mac_addr;  // 源MAC地址6B
+    u_short type;              // 帧类型
 };
 
 struct ipv4_header {
-#define IPV4_HDR_LEN 28
-    u_char ver_hlen;           // Version (4 bits) + Internet header length (4 bits)
-    u_char tos;                // Type of service
-    u_short tlen;              // Total length
-    u_short id;                // Identification
-    u_short flags_offset;      // Flags (3 bits) + Fragment offset (13 bits)
-    u_char ttl;                // Time to live
-    u_char protocol;           // Protocol
-    u_short checksum;          // Header checksum
-    ipv4_address src_ip_addr;  // Source address
-    ipv4_address des_ip_addr;  // Destination address
-    // u_int op_pad;               // Option + Padding
+#define IPV4_HDR_LEN 20
+    u_char ver_hlen;           // 版本(4bit) + 首部长度(4bit)
+    u_char tos;                // 服务类型
+    u_short tlen;              // 总长度(首部长度+数据部分的长度)
+    u_short id;                // id标识
+    u_short flags_offset;      // 标志(3bit) + 片偏移(13bit)
+    u_char ttl;                // 生存时间TTL
+    u_char protocol;           // 协议类型
+    u_short checksum;          // IP首部检验和
+    ipv4_address src_ip_addr;  // 源IP地址
+    ipv4_address des_ip_addr;  // 目的IP地址
+    // u_int op_pad;               // 可选字段和填充位
 };
 
 struct ipv6_header {
@@ -101,15 +102,15 @@ struct ipv6_header {
 
 struct arp_header {
 #define ARP_FRME_LEN 28
-    u_short hardware_type;
-    u_short protocol_type;
-    u_char hardware_length;
-    u_char protocol_length;
-    u_short operation_code;
-    mac_address src_mac_addr;
-    ipv4_address src_ip_addr;
-    mac_address des_mac_addr;
-    ipv4_address des_ip_addr;
+    u_short hardware_type;     // 硬件类型2B
+    u_short protocol_type;     // 协议类型2B
+    u_char hardware_length;    // MAC地址长度1B
+    u_char protocol_length;    // 协议地址长度1B
+    u_short operation_code;    // 操作码2B
+    mac_address src_mac_addr;  // 源MAC地址6B
+    ipv4_address src_ip_addr;  // 源IP地址4B
+    mac_address des_mac_addr;  // 目的MAC地址6B
+    ipv4_address des_ip_addr;  // 目的IP地址4B
 };
 
 struct arp_packet {
@@ -120,15 +121,16 @@ struct arp_packet {
 
 struct tcp_header {
 #define TCP_HDR_LEN 20
-    u_short sport;
-    u_short dport;
-    u_int seq;
-    u_int ack;
-    u_char offset;
-    u_char flags;
-    u_short window;
-    u_short checksum;
-    u_short urg;
+    u_short sport;     // 源端口
+    u_short dport;     // 目的端口
+    u_int seq;         // 序号
+    u_int ack;         // 确认号
+    u_char offset;     // 4bit的数据偏移+4bit的保留位0
+    u_char flags;      // 2bit的保留位0+6bit的flags
+    u_short window;    // 窗口大小
+    u_short checksum;  // TCP检验和
+    u_short urg;       // 紧急指针
+    // u_int op_pad;               // 可选字段和填充位
 };
 
 // TCP伪首部（12B）
@@ -142,10 +144,10 @@ struct psd_tcp_header {
 };
 
 struct udp_header {
-    u_short sport;     // Source port
-    u_short dport;     // Destination port
-    u_short len;       // Datagram length
-    u_short checksum;  // Checksum
+    u_short sport;
+    u_short dport;
+    u_short len;
+    u_short checksum;
 };
 struct icmp_header {
     u_char type;
@@ -156,4 +158,3 @@ struct icmp_header {
 };
 
 #pragma pack()  // 取消按一个字节内存对齐
-

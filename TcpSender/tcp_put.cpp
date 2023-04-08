@@ -7,7 +7,7 @@
 #include "net-types.h"
 #include "utils.hpp"
 
-#define MAX_STR_SIZE 500  // 从控制台允许的最大输入长度
+#define MSS 500  // 从控制台允许的最大输入长度
 #define MTU_SIZE 65535    // 最大传输单元长度
 #define TIME_OUT 1000     // 超时时间
 
@@ -22,7 +22,6 @@ int main() {
     pcap_if_t* d;
     int inum;
     char errbuf[PCAP_ERRBUF_SIZE];
-
     // 获取本地适配器列表
     if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &alldevs, errbuf) == -1) {
         // 结果为-1代表出现获取适配器列表失败

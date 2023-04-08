@@ -6,7 +6,7 @@
 #define MEMSET(dest, data, type) memset(dest, data, sizeof(type));
 #define ALLOCATE(type, num) (type*)malloc(sizeof(type) * num);
 
-#define MAX_STR_SIZE 500  // 从控制台允许的最大输入长度
+#define MSS 536           // 从控制台允许的最大输入长度，方便起见也规定为MSS
 #define MTU_SIZE 65535    // 最大传输单元长度
 #define TIME_OUT 1000     // 超时时间
 
@@ -33,10 +33,10 @@ void packet_handler(u_char* param, const struct pcap_pkthdr* header, const u_cha
 void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
 
 /*分析IPv4数据报*/
-void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+void ipv4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
 
 /*分析IPv6数据报*/
-void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
+void ipv6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
 
 /*分析ARP帧*/
 void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data);
@@ -57,7 +57,6 @@ void add_to_map(std::unordered_map<std::string, int>& counter, ipv6_address& ip)
 /*打印流量统计信息*/
 void print_map(std::unordered_map<std::string, int> counter);
 
-
 char* iptos(u_long in);
 char* ip6tos(struct sockaddr* sockaddr, char* address, int addrlen);
 u_short checksum(u_short* data, int length);
@@ -72,7 +71,7 @@ void SendPack(pcap_if_t* alldevs, const int& inum);
 void PutGetArp(pcap_t* adhandle, pcap_if_t* d, const int& i);
 void FillEthFrame(const u_char* ip_mac, const char* ip_addr, pcap_t* adhandle);
 void FillIPData(ipv4_num& ipv4_n, u_char* send_buf, char* tcp_data, const char* ip_addr, pcap_t* adhandle);
-void FillTCPData(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* adhandle);
+void FillTCPMsg(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* adhandle);
 bool RecieveMenu(pcap_if_t* alldevs);
 void RecivePack(pcap_if_t* alldevs, const int& inum, char* errbuf);
 void Monitors(pcap_t* adhandle, pcap_if_t* d);
@@ -126,18 +125,20 @@ char* ip6tos(struct sockaddr* sockaddr, char* address, int addrlen) {
 
 // 获得校验和
 u_short checksum(u_short* data, int length) {
-    u_long temp = 0;
+    u_long temp = 0;  // temp为32bit，因为计算机会拓展为32位进行算术运算
+    // 将data划分为多个16bit后反码求和
     while (length > 1) {
-        temp += *data++;
-        length -= sizeof(u_short);
+        temp += *data++;            // 对新取出的16bit的内容求和
+        length -= sizeof(u_short);  // sizeof(u_short)=16bit
     }
-    if (length) {
+    if (length) {  // 加上不足16bit的部分，不足16bit的用0补齐
         temp += *(u_short*)data;
     }
-    temp = (temp >> 16) + (temp & 0xffff);
-    temp += (temp >> 16);
-    return (u_short)(~temp);
+    temp = (temp >> 16) + (temp & 0xffff);  // 把32位结果的高16位和低16位相加
+    temp += (temp >> 16);                   // 加上可能存在的进位
+    return (u_short)(~temp);                // 按位取反后返回检验和
 }
+
 
 // 打印设备信息
 void ifprint(pcap_if_t* dev, int& inum) {
@@ -413,8 +414,8 @@ int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac) {
 /* -------------------------------------------------------------------------- */
 /*                                    发送                                    */
 /* -------------------------------------------------------------------------- */
-#define DEST_PORT 102  // 目的端口号
-#define SRC_PORT 1000  // 源端口号
+#define DST_PORT 60000  // 目的端口号
+#define SRC_PORT 50000  // 源端口号
 #define SEQ_NUM 11
 #define ACK_NUM 0
 
@@ -591,15 +592,15 @@ void PutGetArp(pcap_t* adhandle, pcap_if_t* d, const int& i) {
     SendParam sp;
     GetParam gp;
     char choice;
-    getIP(d, ip_addr, ip_netmask);          // 获取所选网卡的基本信息：IP和子网掩码
-    getSelfMAC(adhandle, ip_addr, ip_mac);  // 获取当前主机的MAC地址
+    getIP(d, ip_addr, ip_netmask);          // 获取当前主机的IP和子网掩码
+    getSelfMAC(adhandle, ip_addr, ip_mac);  // 获取当前网卡的MAC地址
     sp.adhandle = adhandle;
     sp.ip = ip_addr;
     sp.mac = ip_mac;
     sp.netmask = ip_netmask;
     gp.adhandle = adhandle;
-    HANDLE sendthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_send_arp, &sp, 0, NULL);
-    HANDLE recvthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_live_ip, &gp, 0, NULL);
+    HANDLE sendthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_send_arp, &sp, 0, NULL);//获取当前局域网内所有网络适配器的MAC地址
+    HANDLE recvthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_live_ip, &gp, 0, NULL);//获取当前局域网内所有主机的IP地址
     printf("\n监听 %d 号网卡 ...\n", i);
     getchar();  // 吸收Enter
     while (true) {
@@ -625,9 +626,9 @@ void FillEthFrame(const u_char* ip_mac, const char* ip_addr, pcap_t* adhandle) {
     u_char send_buf[200];  // 发送队列
     ipv4_num ipv4_n;
     scanf("%hd.%hd.%hd.%hd", &ipv4_n.ip1, &ipv4_n.ip2, &ipv4_n.ip3, &ipv4_n.ip4);
-    printf("请输入你要发送的内容:\n");
+    printf("请输入你要发送的内容，最大%dbit:\n",MSS);
     getchar();  // 吸收Enter
-    std::cin.getline(send_data, MAX_STR_SIZE);
+    std::cin.getline(send_data, MSS);
     printf("要发送的内容为:%s\n", send_data);
     system("cls");
 
@@ -639,7 +640,7 @@ void FillEthFrame(const u_char* ip_mac, const char* ip_addr, pcap_t* adhandle) {
     memcpy(&(eh.des_mac_addr), destmac, 6);
     // 源MAC地址
     BYTE hostmac[6];
-    memcpy(hostmac, ip_mac, 6);  // 这里我自己发给自己，就让源mac地址是自己的源mac地址
+    memcpy(hostmac, ip_mac, 6);  // 这里我自己发给自己，源mac地址是自己的mac地址
     // 源MAC地址
     memcpy(&(eh.src_mac_addr), hostmac, 6);
     // 上层协议类型
@@ -675,32 +676,41 @@ void FillIPData(ipv4_num& ipv4_n, u_char* send_buf, char* tcp_data, const char* 
     ipv4.des_ip_addr.dot_fmt.byte3 = ipv4_n.ip3;
     ipv4.des_ip_addr.dot_fmt.byte4 = ipv4_n.ip4;
     // 赋值sendbuf以IP数据报首部固定部分(由于没有可变部分，正好对齐4字节)
-    memcpy(&send_buf[sizeof(ethernet_header)], &ipv4, 20);
+    memcpy(&send_buf[sizeof(ethernet_header)], &ipv4, IPV4_HDR_LEN);
+
+    char temp_buf[IPV4_HDR_LEN];
+    // 初始化temp_buf为0序列，存储变量来计算IP校验和
+    memset(temp_buf, 0, sizeof(temp_buf));
+    memcpy(temp_buf, &ipv4, sizeof(ipv4_header));
+    // 计算IP校验和
+    ipv4.checksum = checksum((USHORT*)(temp_buf), sizeof(ipv4_header));
+    // 重新把send_buf赋值，IP校验和已经改变
+    memcpy(send_buf + sizeof(ethernet_header), &ipv4, sizeof(ipv4_header));
 
     // 填充TCP报文
-    FillTCPData(ipv4, send_buf, tcp_data, adhandle);
+    FillTCPMsg(ipv4, send_buf, tcp_data, adhandle);
     return;
 }
 
 // 【运输层】填充TCP报文
-void FillTCPData(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* adhandle) {
+void FillTCPMsg(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* adhandle) {
     tcp_header tcp;       // TCP头
     psd_tcp_header ptcp;  // TCP伪首部
     // ANCHOR - 填充TCP报文
     /* --------------------------------- 填充TCP报文 -------------------------------- */
     // 赋值TCP首部
     tcp.sport = htons(SRC_PORT);
-    tcp.dport = htons(DEST_PORT);
+    tcp.dport = htons(DST_PORT);
     tcp.seq = htonl(SEQ_NUM);
     tcp.ack = ACK_NUM;
     tcp.offset = 0x50;
-    tcp.flags = 0x18;  // 0 1 0 0 1 0
+    tcp.flags = 0x18;  // 0 0 0 1 1 0 0 0
     tcp.window = htons(512);
     tcp.checksum = 0;  // 先放全0
     tcp.urg = 0;       // 不使用URG，因此不用紧急指针
 
     // 赋值send_buf
-    memcpy(&send_buf[sizeof(ethernet_header) + 20], &tcp, 20);
+    memcpy(&send_buf[sizeof(ethernet_header) + TCP_HDR_LEN], &tcp, TCP_HDR_LEN);
     // 赋值伪首部
     ptcp.src_addr = ipv4.src_ip_addr;
     ptcp.des_addr = ipv4.des_ip_addr;
@@ -710,27 +720,27 @@ void FillTCPData(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* ad
     char temp_buf[MTU_SIZE];
     memcpy(temp_buf, &ptcp, sizeof(psd_tcp_header));
     // 拼接TCP报文
-    memcpy(temp_buf + sizeof(psd_tcp_header), &tcp, sizeof(tcp_header));
-    memcpy(temp_buf + sizeof(psd_tcp_header) + sizeof(tcp_header), tcp_data, strlen(tcp_data));
+    memcpy(temp_buf + sizeof(psd_tcp_header), &tcp, sizeof(tcp_header)); //拼接TCP伪首部和TCP首部
+    memcpy(temp_buf + sizeof(psd_tcp_header) + sizeof(tcp_header), tcp_data, strlen(tcp_data));//再拼接上TCP数据部分
     // 计算TCP的校验和
     tcp.checksum = checksum((USHORT*)(temp_buf), sizeof(psd_tcp_header) + sizeof(tcp_header) + strlen(tcp_data));
     // 更新send_buf，因为其中TCP检验和字段已更新
     memcpy(send_buf + sizeof(ethernet_header) + sizeof(ipv4_header), &tcp, sizeof(tcp_header));
     memcpy(send_buf + sizeof(ethernet_header) + sizeof(ipv4_header) + sizeof(tcp_header), tcp_data, strlen(tcp_data));
 
-    // 初始化temp_buf为0序列，存储变量来计算IP校验和
-    memset(temp_buf, 0, sizeof(temp_buf));
-    memcpy(temp_buf, &ipv4, sizeof(ipv4_header));
-    // 计算IP校验和
-    ipv4.checksum = checksum((USHORT*)(temp_buf), sizeof(ipv4_header));
-    // 重新把send_buf赋值，IP校验和已经改变
-    memcpy(send_buf + sizeof(ethernet_header), &ipv4, sizeof(ipv4_header));
+    //// 初始化temp_buf为0序列，存储变量来计算IP校验和
+    //memset(temp_buf, 0, sizeof(temp_buf));
+    //memcpy(temp_buf, &ipv4, sizeof(ipv4_header));
+    //// 计算IP校验和
+    //ipv4.checksum = checksum((USHORT*)(temp_buf), sizeof(ipv4_header));
+    //// 重新把send_buf赋值，IP校验和已经改变
+    //memcpy(send_buf + sizeof(ethernet_header), &ipv4, sizeof(ipv4_header));
 
     int size = sizeof(ethernet_header) + sizeof(ipv4_header) + sizeof(tcp_header) + strlen(tcp_data);
     if (pcap_sendpacket(adhandle, send_buf, size) != 0) {
         printf("=>发送失败!\n");
     } else {
-        printf("=>发送TCP数据包.\n");
+        printf("=>发送TCP数据包...\n");
         printf("目的端口:%d\n", ntohs(tcp.dport));
         printf("源端口:%d\n", ntohs(tcp.sport));
         printf("序号:%d\n", ntohl(tcp.seq));
@@ -740,6 +750,7 @@ void FillTCPData(ipv4_header& ipv4, u_char* send_buf, char* tcp_data, pcap_t* ad
         printf("窗口大小:%d\n", ntohs(tcp.window));
         printf("检验和:%u\n", ntohs(tcp.checksum));
         printf("紧急指针:%d\n", ntohs(tcp.urg));
+        printf("数据内容:%s\n", tcp_data);
         printf("=>发送成功!\n");
     }
     return;
@@ -818,13 +829,13 @@ void ethernet_package_handler(u_char* param, const struct pcap_pkthdr* header, c
         << int(eh->src_mac_addr.byte6) << std::endl;
     switch (type) {
         case ETH_IPV4:
-            ip_v4_package_handler(param, header, pkt_data);
+            ipv4_package_handler(param, header, pkt_data);
             break;
         case ETH_ARP:
             arp_package_handler(param, header, pkt_data);
             break;
         case ETH_IPV6:
-            ip_v6_package_handler(param, header, pkt_data);
+            ipv6_package_handler(param, header, pkt_data);
             break;
         default:
             break;
@@ -897,7 +908,7 @@ void arp_package_handler(u_char* param, const struct pcap_pkthdr* header, const 
     print_map(dumpMsg);
 }
 
-void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
+void ipv4_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     ipv4_header* ih;
     ih = (ipv4_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
     std::cout << DIVISION << "IPv4数据报内容" << DIVISION << std::endl;
@@ -982,7 +993,7 @@ void ip_v4_package_handler(u_char* param, const struct pcap_pkthdr* header, cons
     print_map(dumpMsg);
 }
 
-void ip_v6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
+void ipv6_package_handler(u_char* param, const struct pcap_pkthdr* header, const u_char* pkt_data) {
     ipv6_header* ih;
     ih = (ipv6_header*)(pkt_data + 14);  // 14 measn the length of ethernet header
     int version = (ih->ver_trafficclass_flowlabel & 0xf0000000) >> 28;
@@ -1264,6 +1275,7 @@ void Monitors(pcap_t* adhandle, pcap_if_t* d) {
         rule = "src host " + src_ip + " && dst port " + dst_port;
     }
 
+    // 编译过滤条件
     if (pcap_compile(adhandle, &fcode, rule.c_str(), 1, netmask) < 0) {
         fprintf(stderr, "\n无法编译包过滤器。请检查BPF语法。\n");
         pcap_close(adhandle);
