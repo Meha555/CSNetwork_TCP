@@ -62,7 +62,7 @@ char* ip6tos(struct sockaddr* sockaddr, char* address, int addrlen);
 u_short checksum(u_short* data, int length);
 void ifprint(pcap_if_t* dev, int& inum);
 DWORD WINAPI thread_send_arp(LPVOID lpParameter);
-DWORD WINAPI thread_live_ip(LPVOID lpParameter);
+DWORD WINAPI thread_recv_arp(LPVOID lpParameter);
 void getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask);
 int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac);
 bool SenderMenu(pcap_if_t* alldevs);
@@ -91,7 +91,8 @@ struct GetParam {
 
 static bool flag;
 static std::fstream ofs;
-std::unordered_map<std::string, int> dumpMsg;
+std::unordered_map<u_long, u_char* > arpTab; // ARP缓存表
+std::unordered_map<std::string, int> dumpMsg;// 协议流量信息
 
 /* 将数字类型的IPv4地址转换成字符串 */
 char* iptos(u_long in) {
@@ -234,7 +235,7 @@ DWORD WINAPI thread_send_arp(LPVOID lpParameter) {
     printf("本机IP地址：%s\n", ip);
     printf("子网掩码NETMASK为：%s\n", netmask);
     printf("\n");
-    u_char sendbuf[42];  // arp包结构大小
+    u_char* sendbuf = (u_char*)malloc(42 * sizeof(u_char));  // arp包结构大小
     ethernet_header eh;
     arp_header ah;
 
@@ -244,7 +245,7 @@ DWORD WINAPI thread_send_arp(LPVOID lpParameter) {
     eh.type = htons(ETH_ARP);
 
     memcpy(&(ah.src_mac_addr), mac, 6);   // ARP帧源MAC地址
-    memset(&(ah.des_mac_addr), 0x00, 6);  // ARP帧目的MAC地址
+    memset(&(ah.des_mac_addr), 0x00, 6);  // ARP帧目的MAC地址(设为全0，因为目的MAC地址未知)
     ah.hardware_type = htons(ARP_HARDWARE);
     ah.protocol_type = htons(ETH_IPV4);
     ah.hardware_length = 6;
@@ -253,21 +254,32 @@ DWORD WINAPI thread_send_arp(LPVOID lpParameter) {
     ah.operation_code = htons(ARP_REQUEST);
 
     printf("=========================发送/接收Arp帧==========================\n");
-    printf("向本网路内所有可能的主机发送ARP请求包\n");
+    printf("---------    向本网路内所有可能的主机发送ARP请求分组    ---------\n");
 
     // 向局域网内广播发送arp帧
-    u_long my_ip = inet_addr(ip);
-    u_long my_netmask = inet_addr(netmask);
-    u_long unknown_ip = htonl((my_ip & my_netmask));
-    // 向网络前缀为24位的CIDR地址块中的255个主机发送ARP请求帧
-    for (int i = 0; i < 255; i++) {
-        ah.des_ip_addr.bin_fmt = htonl(unknown_ip + i);
-        // 构造一个ARP请求
-        memset(sendbuf, 0, sizeof(sendbuf));
-        memcpy(sendbuf, &eh, sizeof(eh));
-        memcpy(sendbuf + sizeof(eh), &ah, sizeof(ah));
+    ipv4_address cidr_ip, cidr_netmask;
+    cidr_ip.bin_fmt = inet_addr(ip);
+    cidr_netmask.bin_fmt = inet_addr(netmask);
+    u_long unknown_ip = htonl((cidr_ip.bin_fmt & cidr_netmask.bin_fmt));
+    
+    // 获取子网内的可能的最大主机数
+    int subnet_len = 0;
+    while (cidr_netmask.bin_fmt > 0) {
+        cidr_netmask.bin_fmt >>= 1;
+        subnet_len++;
+    }
+    subnet_len = pow(2, (32 - subnet_len)) - 1;
 
-        pcap_sendpacket(adhandle, sendbuf, ARP_PKT_LEN);  // 发送填入自己MAC地址的ARP报文
+    // 向网络前缀为subnet_len位的CIDR地址块中的pow(2, (32 - subnet_len)) - 1个主机发送ARP请求帧
+    for (int i = 0; i < subnet_len; i++) {
+        ah.des_ip_addr.bin_fmt = htonl(unknown_ip + i); // 填写ARP请求分组的目的IP地址，该IP地址所对应的主机将做出该ARP请求分组的回应
+        // 构造一个ARP请求
+        if (sendbuf != NULL) {
+            memset(sendbuf, 0, sizeof(sendbuf));
+            memcpy(sendbuf, &eh, sizeof(eh));
+            memcpy(sendbuf + sizeof(eh), &ah, sizeof(ah));
+        }
+        pcap_sendpacket(adhandle, sendbuf, ARP_PKT_LEN);  // 发送填入当前网卡MAC地址的ARP报文
         //  如果发送成功
         /*if (pcap_sendpacket(adhandle, sendbuf, 42) == 0) {
                 printf("\n成功发送ARP请求分组\n");
@@ -276,23 +288,26 @@ DWORD WINAPI thread_send_arp(LPVOID lpParameter) {
         }*/
         Sleep(50);
     }
+
     Sleep(1000);
     flag = true;
+    free(sendbuf);
     return 0;
 }
 
-/* 获取活动的主机IP地址 */
-DWORD WINAPI thread_live_ip(LPVOID lpParameter) {
+/* 分析捕获的ARP响应分组获取本网络所有的网卡的MAC地址 */
+DWORD WINAPI thread_recv_arp(LPVOID lpParameter) {
     GetParam* gpara = (GetParam*)lpParameter;
     pcap_t* adhandle = gpara->adhandle;
     u_char mac[6];
     struct pcap_pkthdr* pkt_header;
     const u_char* pkt_data;
-    printf("分析截留的数据包获取活动的主机IP地址\n");
+    printf("-----  分析捕获的ARP响应分组获取本网络所有的网卡的MAC地址  -----\n");
     while (true) {
         if (flag) {
             printf("=========================填写数据包信息==========================\n");
-            printf("获取MAC地址完毕,请输入你要发送对方的IP地址:\n");
+            printf("获取MAC地址完毕，当前ARP缓存表中有%d条记录\n",arpTab.size());
+            printf("请输入你要发送对方的IP地址：\n");
             break;
         }
         if ((pcap_next_ex(adhandle, &pkt_header, &pkt_data)) >= 0) {
@@ -312,6 +327,7 @@ DWORD WINAPI thread_live_ip(LPVOID lpParameter) {
                         printf("%02X", mac[i]);
                     }
                     printf("\n");
+                    arpTab.insert({ (u_long)(recv->ah.src_ip_addr.bin_fmt), mac });
                 }
             }
         }
@@ -320,7 +336,7 @@ DWORD WINAPI thread_live_ip(LPVOID lpParameter) {
     return 0;
 }
 
-// 获取本机所有网卡的IP和子网掩码并赋值为ip_addr和ip_netmask
+// 获取本机网卡的IP和子网掩码并赋值为ip_addr和ip_netmask
 void getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask) {
     pcap_addr_t* a;
     // 遍历所有的地址,a代表一个pcap_addr
@@ -405,6 +421,7 @@ int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac) {
                 ip_mac[i] = *(u_char*)(pkt_data + 22 + i);
             }
             printf("获取本机MAC地址成功!\n");
+            arpTab.insert({ (u_long)atol(ip_addr), ip_mac });
             break;
         }
     }
@@ -599,8 +616,9 @@ void PutGetArp(pcap_t* adhandle, pcap_if_t* d, const int& i) {
     sp.mac = ip_mac;
     sp.netmask = ip_netmask;
     gp.adhandle = adhandle;
-    HANDLE sendthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_send_arp, &sp, 0, NULL);//获取当前局域网内所有网络适配器的MAC地址
-    HANDLE recvthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_live_ip, &gp, 0, NULL);//获取当前局域网内所有主机的IP地址
+    //获取当前局域网内所有网络适配器的MAC地址，sendthread负责发送arp请求，recvthread负责接收arp响应
+    HANDLE sendthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_send_arp, &sp, 0, NULL);
+    HANDLE recvthread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)thread_recv_arp, &gp, 0, NULL);
     printf("\n监听 %d 号网卡 ...\n", i);
     getchar();  // 吸收Enter
     while (true) {
@@ -635,8 +653,10 @@ void FillEthFrame(const u_char* ip_mac, const char* ip_addr, pcap_t* adhandle) {
     // ANCHOR - 填充以太网MAC帧
     /* -------------------------------- 填充以太网MAC帧 ------------------------------- */
     // 目的MAC地址（由于网卡开启了混杂模式，不赋值为本网卡MAC地址也可以捕捉到并解析）
-    BYTE destmac[6] = {0x82, 0xf0, 0x7f, 0x44, 0x98, 0x6d};  // 点对点链路上的另一个网卡的MAC地址
+    // 点对点链路上的另一个网卡的MAC地址
+    BYTE* destmac = arpTab[(u_long)atol(ip_addr)];
     // 0xe0, 0xde, 0xe8, 0x63, 0xc1, 0xf3
+    // 0x82, 0xf0, 0x7f, 0x44, 0x98, 0x6d
     memcpy(&(eh.des_mac_addr), destmac, 6);
     // 源MAC地址
     BYTE hostmac[6];

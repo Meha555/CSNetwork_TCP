@@ -47,6 +47,11 @@ struct ipv4_address {
     void operator=(const ipv4_address& t) {
         this->bin_fmt = t.bin_fmt;
     }
+    operator in_addr() {
+        in_addr t;
+        t.S_un.S_addr = this->bin_fmt;
+        return t;
+    }
 };
 
 struct ipv6_address {

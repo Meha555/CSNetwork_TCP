@@ -15,7 +15,7 @@ void getIP(pcap_if_t* d, char* ip_addr, char* ip_netmask);              // 用if
 int getSelfMAC(pcap_t* adhandle, const char* ip_addr, u_char* ip_mac);  // 发送一个ARP请求来获取自身的MAC地址
 
 DWORD WINAPI thread_send_arp(LPVOID lpParameter);
-DWORD WINAPI thread_live_ip(LPVOID lpParameter);
+DWORD WINAPI thread_recv_arp(LPVOID lpParameter);
 
 int main() {
     pcap_if_t* alldevs;
