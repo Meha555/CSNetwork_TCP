@@ -11,6 +11,8 @@
 #pragma comment(lib, "packet.lib")
 #pragma comment(lib, "ws2_32.lib")
 
+#pragma execution_character_set("utf-8")
+
 #include <WinSock2.h>
 #include <pcap.h>
 #include <stdio.h>

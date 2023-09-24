@@ -7,6 +7,7 @@
 /npcap-sdk-1.13
 /WpdPack
 /.vscode
+/.vs
 
 # User-specific files
 *.rsuser
@@ -105,9 +106,9 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
-TCP_Demo/*.vcxproj*
-TcpSender/*.vcxproj*
-TcpReceiver/*.vcxproj*
+./TCP_Demo/*.vcxproj
+./TcpSender/*.vcxproj
+./TcpReceiver/*.vcxproj
 *.json
 
 # Chutzpah Test files

@@ -80,8 +80,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>F:\学习2\计算机网络\三级项目\TcpDemo\npcap-sdk-1.13\Include;F:\学习2\计算机网络\三级项目\TcpDemo\com-headers;$(IncludePath)</IncludePath>
-    <LibraryPath>F:\学习2\计算机网络\三级项目\TcpDemo\npcap-sdk-1.13\Lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>F:\学习2\计算机网络\三级项目\computer-network-projects\tcpdemo\npcap-sdk-1.13\Include;F:\学习2\计算机网络\三级项目\computer-network-projects\tcpdemo\com-headers;$(IncludePath)</IncludePath>
+    <LibraryPath>F:\学习2\计算机网络\三级项目\computer-network-projects\tcpdemo\npcap-sdk-1.13\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -125,6 +125,7 @@
       <AdditionalDependencies>wpcap.lib;ws2_32.lib;Packet.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+      <AdditionalLibraryDirectories>F:\学习2\计算机网络\三级项目\computer-network-projects\tcpdemo\npcap-sdk-1.13\Lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

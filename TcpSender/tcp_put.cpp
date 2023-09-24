@@ -7,6 +7,8 @@
 #include "net-types.h"
 #include "utils.hpp"
 
+#pragma execution_character_set("utf-8")
+
 #define MSS 500  // 从控制台允许的最大输入长度
 #define MTU_SIZE 65535    // 最大传输单元长度
 #define TIME_OUT 1000     // 超时时间

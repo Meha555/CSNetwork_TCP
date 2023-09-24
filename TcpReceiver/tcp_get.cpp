@@ -3,6 +3,8 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1
 #endif
 
+#pragma execution_character_set("utf-8")
+
 #include "net-types.h"
 #include "utils.hpp"
 
